@@ -2,40 +2,47 @@
 
 This document outlines the plan for creating a backend service for the phonemic chart application. The backend will handle data storage and audio file serving, replacing the current GitHub Pages static hosting with a dynamic solution.
 
+**Complete file structure with file paths included for all code samples.**
+
 ## Architecture Overview
 
 ```
 my_extended_ipa_symbols/
 ├── backend/                      # Python FastAPI server
 │   ├── app/
-│   │   ├── __init__.py
-│   │   ├── main.py               # FastAPI application entry point
+│   │   ├── __init__.py           # File: backend/app/__init__.py
+│   │   ├── main.py               # File: backend/app/main.py - FastAPI application entry point
 │   │   ├── models/               # Database models
-│   │   │   ├── __init__.py
-│   │   │   ├── language.py
-│   │   │   ├── phoneme.py
-│   │   │   └── allophone.py
+│   │   │   ├── __init__.py       # File: backend/app/models/__init__.py
+│   │   │   ├── language.py       # File: backend/app/models/language.py
+│   │   │   ├── phoneme.py        # File: backend/app/models/phoneme.py
+│   │   │   └── allophone.py      # File: backend/app/models/allophone.py
 │   │   ├── routers/              # API route handlers
-│   │   │   ├── __init__.py
-│   │   │   ├── languages.py
-│   │   │   ├── phonemes.py
-│   │   │   └── audio.py
+│   │   │   ├── __init__.py       # File: backend/app/routers/__init__.py
+│   │   │   ├── languages.py      # File: backend/app/routers/languages.py
+│   │   │   ├── phonemes.py       # File: backend/app/routers/phonemes.py
+│   │   │   └── audio.py          # File: backend/app/routers/audio.py
 │   │   ├── schemas/              # Pydantic models for request/response
-│   │   │   ├── __init__.py 
-│   │   │   ├── language.py
-│   │   │   └── phoneme.py
+│   │   │   ├── __init__.py       # File: backend/app/schemas/__init__.py
+│   │   │   ├── language.py       # File: backend/app/schemas/language.py
+│   │   │   └── phoneme.py        # File: backend/app/schemas/phoneme.py
 │   │   ├── services/             # Business logic
-│   │   │   ├── __init__.py
-│   │   │   └── audio_service.py
-│   │   └── database.py           # Database connection
+│   │   │   ├── __init__.py       # File: backend/app/services/__init__.py
+│   │   │   └── audio_service.py  # File: backend/app/services/audio_service.py
+│   │   └── database.py           # File: backend/app/database.py - Database connection
 │   ├── audio_files/              # Storage for audio files
-│   │   ├── english/
-│   │   ├── spanish/
+│   │   ├── english/              # File: backend/audio_files/english/
+│   │   ├── spanish/              # File: backend/audio_files/spanish/
 │   │   └── ...
-│   ├── requirements.txt          # Dependencies
-│   └── Dockerfile                # For containerization
+│   ├── scripts/                  # Utility scripts
+│   │   └── import_data.py        # File: backend/scripts/import_data.py - Data import script
+│   ├── requirements.txt          # File: backend/requirements.txt - Dependencies
+│   └── Dockerfile                # File: backend/Dockerfile - For containerization
 ├── frontend/                     # Your existing frontend code
-└── docker-compose.yml            # For local development
+│   └── src/
+│       └── components/
+│           └── PhonemeChart.jsx  # File: frontend/src/components/PhonemeChart.jsx - Main component
+└── docker-compose.yml            # File: docker-compose.yml - For local development
 ```
 
 ## Database Schema
@@ -90,7 +97,7 @@ GET /api/audio/{lang_code}/{filename} - Serve audio file
 ### 1. FastAPI Main Application
 
 ```python
-# backend/app/main.py
+# File: backend/app/main.py
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from .routers import languages, phonemes, audio
@@ -127,7 +134,7 @@ async def root():
 ### 2. Database Setup
 
 ```python
-# backend/app/database.py
+# File: backend/app/database.py
 from sqlalchemy import create_engine
 from sqlalchemy.ext.declarative import declarative_base
 from sqlalchemy.orm import sessionmaker
@@ -155,7 +162,7 @@ def get_db():
 ### 3. Models
 
 ```python
-# backend/app/models/language.py
+# File: backend/app/models/language.py
 from sqlalchemy import Column, String
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -170,8 +177,10 @@ class Language(Base):
     name = Column(String)
     
     phonemes = relationship("Phoneme", back_populates="language")
+```
 
-# backend/app/models/phoneme.py
+```python
+# File: backend/app/models/phoneme.py
 from sqlalchemy import Column, String, Integer, ForeignKey, Enum
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -199,6 +208,15 @@ class Phoneme(Base):
     
     language = relationship("Language", back_populates="phonemes")
     allophones = relationship("Allophone", back_populates="phoneme")
+```
+
+```python
+# File: backend/app/models/allophone.py
+from sqlalchemy import Column, String, ForeignKey
+from sqlalchemy.orm import relationship
+from sqlalchemy.dialects.postgresql import UUID
+import uuid
+from ..database import Base
 
 class Allophone(Base):
     __tablename__ = "allophones"
@@ -217,7 +235,7 @@ class Allophone(Base):
 ### 4. Pydantic Schemas for Validation
 
 ```python
-# backend/app/schemas/language.py
+# File: backend/app/schemas/language.py
 from pydantic import BaseModel
 from typing import List, Optional
 from uuid import UUID
@@ -234,8 +252,10 @@ class Language(LanguageBase):
     
     class Config:
         orm_mode = True
+```
 
-# backend/app/schemas/phoneme.py
+```python
+# File: backend/app/schemas/phoneme.py
 from pydantic import BaseModel
 from typing import List, Optional, Union
 from uuid import UUID
@@ -291,7 +311,7 @@ class PhonemeGrid(BaseModel):
 ### 5. API Routes
 
 ```python
-# backend/app/routers/languages.py
+# File: backend/app/routers/languages.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List
@@ -311,15 +331,17 @@ def get_language(lang_code: str, db: Session = Depends(get_db)):
     if language is None:
         raise HTTPException(status_code=404, detail="Language not found")
     return language
+```
 
-# backend/app/routers/phonemes.py
+```python
+# File: backend/app/routers/phonemes.py
 from fastapi import APIRouter, Depends, HTTPException
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from ..database import get_db
-from ..schemas.phoneme import Phoneme, PhonemeGrid
+from ..schemas.phoneme import Phoneme, PhonemeGrid, PhonemeType
 from ..models.language import Language
-from ..models.phoneme import Phoneme as PhonemeModel, PhonemeType
+from ..models.phoneme import Phoneme as PhonemeModel, PhonemeType as PhonemeTypeModel
 
 router = APIRouter()
 
@@ -333,7 +355,7 @@ def get_phonemes(lang_code: str, type: Optional[PhonemeType] = None, db: Session
     # Query phonemes
     query = db.query(PhonemeModel).filter(PhonemeModel.language_id == language.id)
     if type:
-        query = query.filter(PhonemeModel.type == type)
+        query = query.filter(PhonemeModel.type == PhonemeTypeModel[type.value])
     
     return query.all()
 
@@ -356,7 +378,7 @@ def get_phonemic_grid(lang_code: str, db: Session = Depends(get_db)):
     
     # Group by row
     for phoneme in phonemes:
-        if phoneme.type == PhonemeType.consonant:
+        if phoneme.type == PhonemeTypeModel.consonant:
             # Ensure we have enough rows
             while len(consonants) <= phoneme.row_position:
                 consonants.append([None] * 10)  # Assuming max 10 columns
@@ -372,8 +394,10 @@ def get_phonemic_grid(lang_code: str, db: Session = Depends(get_db)):
             vowels[phoneme.row_position][phoneme.column_position] = phoneme
     
     return {"consonants": consonants, "vowels": vowels}
+```
 
-# backend/app/routers/audio.py
+```python
+# File: backend/app/routers/audio.py
 from fastapi import APIRouter, HTTPException
 from fastapi.responses import FileResponse
 import os
@@ -395,7 +419,7 @@ async def get_audio(lang_code: str, filename: str):
 ### 6. Requirements
 
 ```
-# backend/requirements.txt
+# File: backend/requirements.txt
 fastapi>=0.95.0
 uvicorn>=0.21.1
 sqlalchemy>=2.0.7
@@ -412,7 +436,7 @@ sqlite3  # For SQLite (included in Python standard library)
 ### 7. Data Import Script
 
 ```python
-# backend/scripts/import_data.py
+# File: backend/scripts/import_data.py
 import json
 import os
 import sys
@@ -422,7 +446,8 @@ sys.path.append("../")  # Add the parent directory to the Python path
 
 from app.database import Base
 from app.models.language import Language
-from app.models.phoneme import Phoneme, PhonemeType, Allophone
+from app.models.phoneme import Phoneme, PhonemeType
+from app.models.allophone import Allophone
 
 # Create database connection
 engine = create_engine("sqlite:///./ipa_symbols.db")
@@ -494,7 +519,7 @@ print("Data import completed!")
 ### 8. Docker Setup
 
 ```dockerfile
-# backend/Dockerfile
+# File: backend/Dockerfile
 FROM python:3.9
 
 WORKDIR /app
@@ -508,7 +533,7 @@ CMD ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
 ```
 
 ```yaml
-# docker-compose.yml
+# File: docker-compose.yml
 version: '3'
 
 services:
@@ -555,7 +580,7 @@ services:
 ## Frontend Integration Example
 
 ```jsx
-// Example of updated React component
+// File: frontend/src/components/PhonemeChart.jsx
 import React, { useState, useEffect } from 'react';
 import axios from 'axios';
 
@@ -624,8 +649,123 @@ const PhonemeChart = () => {
     audio.play().catch(err => console.error('Error playing audio:', err));
   };
   
-  // ... rest of your component code
+  // Render phoneme cell
+  const renderPhonemeCell = (phoneme, index) => {
+    if (!phoneme) return <td key={index} className="bg-gray-100 w-12 h-12"></td>;
+    
+    const isActive = activePhoneme && activePhoneme.id === phoneme.id;
+    
+    return (
+      <td 
+        key={index}
+        className={`text-center cursor-pointer p-2 w-12 h-12 border ${isActive ? 'bg-blue-200 border-blue-500' : 'hover:bg-blue-100 border-gray-300'}`}
+        onClick={() => handlePhonemeClick(phoneme)}
+      >
+        <div className="text-lg font-semibold">{phoneme.symbol}</div>
+      </td>
+    );
+  };
+  
+  return (
+    <div className="max-w-6xl mx-auto p-6 bg-white rounded-lg shadow-lg">
+      <h1 className="text-2xl font-bold mb-6">Interactive Phonemic Chart</h1>
+      
+      <div className="mb-6">
+        <label htmlFor="language-select" className="block text-sm font-medium text-gray-700 mb-2">
+          Select a language:
+        </label>
+        <select
+          id="language-select"
+          value={selectedLanguage}
+          onChange={handleLanguageChange}
+          className="block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500"
+          disabled={loading}
+        >
+          {languages.map(lang => (
+            <option key={lang.id} value={lang.code}>
+              {lang.name}
+            </option>
+          ))}
+        </select>
+      </div>
+      
+      {error && (
+        <div className="p-4 mb-6 bg-red-100 border border-red-400 text-red-700 rounded-md">
+          {error}
+        </div>
+      )}
+      
+      {loading ? (
+        <div className="flex justify-center items-center h-40">
+          <p>Loading...</p>
+        </div>
+      ) : (
+        <>
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Consonants</h2>
+            <div className="overflow-x-auto">
+              <table className="border-collapse border border-gray-300">
+                <tbody>
+                  {phonemeData.consonants.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {row.map((phoneme, cellIndex) => renderPhonemeCell(phoneme, `cons-${rowIndex}-${cellIndex}`))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          <div className="mb-8">
+            <h2 className="text-xl font-semibold mb-4">Vowels</h2>
+            <div className="overflow-x-auto">
+              <table className="border-collapse border border-gray-300">
+                <tbody>
+                  {phonemeData.vowels.map((row, rowIndex) => (
+                    <tr key={rowIndex}>
+                      {row.map((phoneme, cellIndex) => renderPhonemeCell(phoneme, `vowel-${rowIndex}-${cellIndex}`))}
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+          
+          {activePhoneme && (
+            <div className="p-4 border rounded-md bg-gray-50">
+              <h3 className="text-lg font-semibold mb-2">
+                <span className="text-xl mr-2">{activePhoneme.symbol}</span>
+                <span className="text-gray-500">/{activePhoneme.ipa}/</span>
+              </h3>
+              
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <p><span className="font-semibold">Example:</span> {activePhoneme.example}</p>
+                  <p><span className="font-semibold">Description:</span> {activePhoneme.description}</p>
+                </div>
+                
+                <div className="flex items-center justify-center md:justify-start">
+                  <button 
+                    className="flex items-center justify-center px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-opacity-50"
+                    onClick={() => playAudio(activePhoneme.audio_file)}
+                    disabled={!activePhoneme.audio_file}
+                  >
+                    <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
+                      <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM9.555 7.168A1 1 0 008 8v4a1 1 0 001.555.832l3-2a1 1 0 000-1.664l-3-2z" clipRule="evenodd" />
+                    </svg>
+                    Play Pronunciation
+                  </button>
+                </div>
+              </div>
+            </div>
+          )}
+        </>
+      )}
+    </div>
+  );
 };
+
+export default PhonemeChart;
 ```
 
 ## Deployment Options
