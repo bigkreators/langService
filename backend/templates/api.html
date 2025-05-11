@@ -1,0 +1,447 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Extended IPA Symbols API</title>
+    <link href="https://fonts.googleapis.com/css2?family=Open+Sans:wght@400;600&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Open Sans', sans-serif;
+            line-height: 1.6;
+            color: #333;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+        h1 {
+            color: #2563eb;
+            border-bottom: 2px solid #e5e7eb;
+            padding-bottom: 10px;
+        }
+        h2 {
+            color: #4b5563;
+            margin-top: 30px;
+            border-bottom: 1px solid #e5e7eb;
+            padding-bottom: 5px;
+        }
+        h3 {
+            color: #4b5563;
+            margin-top: 25px;
+        }
+        .endpoint {
+            background-color: #f9fafb;
+            border-left: 4px solid #2563eb;
+            padding: 15px;
+            margin-bottom: 15px;
+            border-radius: 0 4px 4px 0;
+        }
+        .method {
+            font-weight: 600;
+            color: #fff;
+            padding: 5px 10px;
+            border-radius: 4px;
+            margin-right: 10px;
+            display: inline-block;
+            width: 60px;
+            text-align: center;
+        }
+        .get {
+            background-color: #10b981;
+        }
+        .post {
+            background-color: #3b82f6;
+        }
+        .put {
+            background-color: #f59e0b;
+        }
+        .delete {
+            background-color: #ef4444;
+        }
+        .path {
+            font-family: monospace;
+            font-size: 16px;
+        }
+        .description {
+            margin-top: 10px;
+        }
+        .code {
+            background-color: #f1f5f9;
+            padding: 15px;
+            border-radius: 4px;
+            overflow-x: auto;
+            font-family: monospace;
+            margin: 15px 0;
+        }
+        .note {
+            background-color: #e0f2fe;
+            border-left: 4px solid #0ea5e9;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .warning {
+            background-color: #fff7ed;
+            border-left: 4px solid #f59e0b;
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 0 4px 4px 0;
+        }
+        .tab-container {
+            margin: 20px 0;
+        }
+        .tabs {
+            display: flex;
+            border-bottom: 1px solid #e5e7eb;
+        }
+        .tab {
+            padding: 10px 20px;
+            cursor: pointer;
+            border-bottom: 2px solid transparent;
+        }
+        .tab.active {
+            border-bottom: 2px solid #2563eb;
+            color: #2563eb;
+            font-weight: 600;
+        }
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background-color: #f9fafb;
+            border-radius: 0 0 4px 4px;
+        }
+        .tab-content.active {
+            display: block;
+        }
+        .footer {
+            margin-top: 50px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+            text-align: center;
+            color: #6b7280;
+        }
+    </style>
+</head>
+<body>
+    <h1>Extended IPA Symbols API Documentation</h1>
+    
+    <p>This API provides access to International Phonetic Alphabet (IPA) symbols, including extended and "impossible" phonemes. It also offers features for proposing new symbols, participating in discussions, and receiving notifications.</p>
+    
+    <div class="note">
+        <strong>Note:</strong> The main interactive IPA chart application is accessible from the <a href="/">home page</a>.
+    </div>
+    
+    <div class="warning">
+        <strong>API Version:</strong> 1.0.0<br>
+        <strong>Base URL:</strong> /api
+    </div>
+    
+    <h2>Interactive API Documentation</h2>
+    <p>For interactive documentation with request builders and response examples, visit:</p>
+    <ul>
+        <li><a href="/api/docs" target="_blank">Swagger UI</a> - Interactive API documentation</li>
+        <li><a href="/api/redoc" target="_blank">ReDoc</a> - Alternative API documentation</li>
+    </ul>
+    
+    <h2>Authentication</h2>
+    <p>Currently, the API does not require authentication. This may change in future versions.</p>
+    
+    <h2>Languages Endpoints</h2>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/languages</span>
+        <div class="description">Returns a list of all available languages.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/languages/{lang_code}</span>
+        <div class="description">Returns details for a specific language.</div>
+    </div>
+    
+    <h2>Phonemes Endpoints</h2>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/languages/{lang_code}/phonemes</span>
+        <div class="description">Returns all phonemes for a specified language. Optional query parameters: type (consonant/vowel), extended (true/false).</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/languages/{lang_code}/phonemic</span>
+        <div class="description">Returns phoneme data organized in a grid format for display in the phonemic chart.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/languages/{lang_code}/extended-phonemes</span>
+        <div class="description">Returns only the extended IPA phonemes for a specified language.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/languages/{lang_code}/impossible-phonemes</span>
+        <div class="description">Returns "impossible" phonemes for a specified language.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/phonemes/categories</span>
+        <div class="description">Returns available phoneme categories and articulation types.</div>
+    </div>
+    
+    <h2>Audio Endpoints</h2>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/audio/{lang_code}/{filename}</span>
+        <div class="description">Serves audio files for phonemes.</div>
+    </div>
+    
+    <h2>Proposal Endpoints</h2>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/proposals</span>
+        <div class="description">Lists all proposals. Optional query parameters: status, category.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path">/api/proposals</span>
+        <div class="description">Creates a new proposal. Accepts multipart/form-data with symbol, sound_name, category, rationale, example_language (optional), audio_file (optional), and image_file (optional).</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/proposals/{proposal_id}</span>
+        <div class="description">Returns details for a specific proposal.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method put">PUT</span>
+        <span class="path">/api/proposals/{proposal_id}/vote</span>
+        <div class="description">Votes on a proposal. Requires vote parameter (1 for upvote, -1 for downvote).</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method put">PUT</span>
+        <span class="path">/api/proposals/{proposal_id}/status</span>
+        <div class="description">Updates proposal status. Requires status parameter (pending, approved, rejected). Admin only.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method delete">DELETE</span>
+        <span class="path">/api/proposals/{proposal_id}</span>
+        <div class="description">Deletes a proposal.</div>
+    </div>
+    
+    <h2>Discussion Endpoints</h2>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/discussions</span>
+        <div class="description">Lists all discussion topics. Supports pagination with skip and limit parameters.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path">/api/discussions</span>
+        <div class="description">Creates a new discussion topic.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/discussions/{topic_id}</span>
+        <div class="description">Returns a specific discussion topic with all replies.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path">/api/discussions/{topic_id}/replies</span>
+        <div class="description">Adds a reply to a discussion topic.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method delete">DELETE</span>
+        <span class="path">/api/discussions/{topic_id}</span>
+        <div class="description">Deletes a discussion topic and all its replies.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method delete">DELETE</span>
+        <span class="path">/api/discussions/{topic_id}/replies/{reply_id}</span>
+        <div class="description">Deletes a specific reply.</div>
+    </div>
+    
+    <h2>Notification Endpoints</h2>
+    
+    <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path">/api/notifications</span>
+        <div class="description">Lists all notifications. Optional query parameter: is_read (true/false).</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path">/api/notifications</span>
+        <div class="description">Creates a new notification.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method put">PUT</span>
+        <span class="path">/api/notifications/{notification_id}/read</span>
+        <div class="description">Marks a notification as read.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method put">PUT</span>
+        <span class="path">/api/notifications/read-all</span>
+        <div class="description">Marks all notifications as read.</div>
+    </div>
+    
+    <div class="endpoint">
+        <span class="method delete">DELETE</span>
+        <span class="path">/api/notifications/{notification_id}</span>
+        <div class="description">Deletes a notification.</div>
+    </div>
+    
+    <h2>Code Examples</h2>
+    
+    <div class="tab-container">
+        <div class="tabs">
+            <div class="tab active" data-tab="js">JavaScript</div>
+            <div class="tab" data-tab="python">Python</div>
+            <div class="tab" data-tab="curl">cURL</div>
+        </div>
+        
+        <div class="tab-content active" id="js">
+            <div class="code">
+// Fetch phoneme data for display
+const fetchPhonemeData = async (languageCode) => {
+  try {
+    const response = await fetch(`/api/languages/${languageCode}/phonemic`);
+    if (!response.ok) throw new Error('Failed to fetch phoneme data');
+    
+    const data = await response.json();
+    return data;
+  } catch (error) {
+    console.error('Error fetching phoneme data:', error);
+    throw error;
+  }
+};
+
+// Submit a new proposal
+const submitProposal = async (formData) => {
+  try {
+    const response = await fetch('/api/proposals', {
+      method: 'POST',
+      body: formData  // FormData object with proposal details
+    });
+    
+    if (!response.ok) throw new Error('Failed to submit proposal');
+    
+    return await response.json();
+  } catch (error) {
+    console.error('Error submitting proposal:', error);
+    throw error;
+  }
+};
+            </div>
+        </div>
+        
+        <div class="tab-content" id="python">
+            <div class="code">
+import requests
+
+# Fetch all languages
+def get_languages():
+    response = requests.get('http://example.com/api/languages')
+    response.raise_for_status()
+    return response.json()
+
+# Fetch phoneme data for a language
+def get_phoneme_data(language_code):
+    response = requests.get(f'http://example.com/api/languages/{language_code}/phonemic')
+    response.raise_for_status()
+    return response.json()
+
+# Submit a proposal with files
+def submit_proposal(symbol, sound_name, category, rationale, example_lang=None, audio_file=None, image_file=None):
+    files = {}
+    if audio_file:
+        files['audio_file'] = audio_file
+    if image_file:
+        files['image_file'] = image_file
+        
+    data = {
+        'symbol': symbol,
+        'sound_name': sound_name,
+        'category': category,
+        'rationale': rationale
+    }
+    
+    if example_lang:
+        data['example_language'] = example_lang
+        
+    response = requests.post('http://example.com/api/proposals', data=data, files=files)
+    response.raise_for_status()
+    return response.json()
+            </div>
+        </div>
+        
+        <div class="tab-content" id="curl">
+            <div class="code">
+# Get all languages
+curl -X GET http://example.com/api/languages
+
+# Get phoneme data for English
+curl -X GET http://example.com/api/languages/english/phonemic
+
+# Submit a proposal
+curl -X POST http://example.com/api/proposals \
+  -F "symbol=ꬶ" \
+  -F "sound_name=Voiced postpalatal plosive" \
+  -F "category=consonant" \
+  -F "rationale=This symbol is needed for various languages that use this sound" \
+  -F "example_language=Hypothetical Language X" \
+  -F "audio_file=@/path/to/audio.mp3"
+
+# Vote on a proposal
+curl -X PUT http://example.com/api/proposals/f47ac10b-58cc-4372-a567-0e02b2c3d479/vote \
+  -H "Content-Type: application/json" \
+  -d '{"vote": 1}'
+            </div>
+        </div>
+    </div>
+    
+    <div class="footer">
+        <p>&copy; 2025 Extended IPA Symbols Project</p>
+    </div>
+    
+    <script>
+        // Tab switching
+        const tabs = document.querySelectorAll('.tab');
+        const tabContents = document.querySelectorAll('.tab-content');
+        
+        tabs.forEach(tab => {
+            tab.addEventListener('click', function() {
+                // Remove active class from all tabs
+                tabs.forEach(t => t.classList.remove('active'));
+                
+                // Add active class to clicked tab
+                this.classList.add('active');
+                
+                // Hide all tab contents
+                tabContents.forEach(content => content.classList.remove('active'));
+                
+                // Show the corresponding tab content
+                const tabId = this.getAttribute('data-tab');
+                document.getElementById(tabId).classList.add('active');
+            });
+        });
+    </script>
+</body>
+</html>

@@ -115,7 +115,7 @@ from sqlalchemy.orm import sessionmaker
 import os
 
 # Use environment variables for configuration
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ipa_symbols.db")
+DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./scripts/ipa_symbols.db")
 
 engine = create_engine(
     DATABASE_URL, connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}

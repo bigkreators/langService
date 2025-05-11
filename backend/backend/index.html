@@ -1,0 +1,290 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Phonemic Chart - Extended IPA Symbols</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, 'Open Sans', 'Helvetica Neue', sans-serif;
+            line-height: 1.5;
+            color: #333;
+            margin: 0;
+            padding: 0;
+            background-color: #f7f7f7;
+        }
+
+        .container {
+            max-width: 1220px;
+            margin: 0 auto;
+            background-color: white;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            padding: 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            background-color: #2563eb;
+            color: white;
+            padding: 16px 20px;
+            margin: -20px -20px 20px -20px;
+            border-radius: 8px 8px 0 0;
+        }
+
+        .header h1 {
+            margin: 0;
+            font-size: 24px;
+        }
+
+        .tabs {
+            display: flex;
+            margin-bottom: 20px;
+        }
+
+        .tab {
+            padding: 10px 20px;
+            background-color: #727c89;
+            color: white;
+            text-align: center;
+            cursor: pointer;
+            border-radius: 5px;
+            margin-right: 10px;
+        }
+
+        .tab.active {
+            background-color: #6b7ff7;
+        }
+
+        .tab-content {
+            display: none;
+            padding: 20px;
+            background-color: #f9fafb;
+            border-radius: 8px;
+        }
+
+        .tab-content.active {
+            display: block;
+        }
+
+        .api-link {
+            display: inline-block;
+            padding: 10px 15px;
+            background-color: #2563eb;
+            color: white;
+            text-decoration: none;
+            border-radius: 4px;
+            margin-top: 10px;
+        }
+
+        .api-link:hover {
+            background-color: #1e40af;
+        }
+
+        .phoneme-table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 20px;
+        }
+
+        .phoneme-table th, .phoneme-table td {
+            border: 1px solid #ddd;
+            padding: 10px;
+            text-align: center;
+        }
+
+        .phoneme-table th {
+            background-color: #f0f0f0;
+        }
+
+        .label-cell {
+            background-color: #f8f9fa;
+            font-weight: bold;
+        }
+
+        .loading {
+            text-align: center;
+            padding: 40px;
+            font-style: italic;
+            color: #666;
+        }
+
+        .error {
+            background-color: #fee2e2;
+            border: 1px solid #ef4444;
+            padding: 15px;
+            border-radius: 8px;
+            margin-bottom: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Interactive Phonemic Chart</h1>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="welcome">Welcome</div>
+            <div class="tab" data-tab="consonants">Consonants</div>
+            <div class="tab" data-tab="vowels">Vowels</div>
+            <div class="tab" data-tab="api">API</div>
+        </div>
+
+        <!-- Welcome Tab Content -->
+        <div id="welcome" class="tab-content active">
+            <h2>Welcome to Extended IPA Symbols</h2>
+            <p>This application provides an interactive chart of extended International Phonetic Alphabet (IPA) symbols, including "impossible" phonemes.</p>
+            <p>The backend is running successfully!</p>
+            
+            <h3>Features Available:</h3>
+            <ul>
+                <li>Browse extended IPA symbols for consonants and vowels</li>
+                <li>View "impossible" phonemes</li>
+                <li>Submit proposals for new symbols</li>
+                <li>Participate in discussions</li>
+                <li>Access the API for programmatic integration</li>
+            </ul>
+            
+            <p>Choose a tab above to explore the content, or check out the API documentation for developers:</p>
+            <a href="/api/docs" class="api-link">API Documentation</a>
+        </div>
+
+        <!-- Consonants Tab Content -->
+        <div id="consonants" class="tab-content">
+            <h2>Extended IPA Consonants</h2>
+            <div class="loading">Loading consonants data...</div>
+            <div id="consonants-grid"></div>
+        </div>
+
+        <!-- Vowels Tab Content -->
+        <div id="vowels" class="tab-content">
+            <h2>Extended IPA Vowels</h2>
+            <div class="loading">Loading vowels data...</div>
+            <div id="vowels-grid"></div>
+        </div>
+
+        <!-- API Tab Content -->
+        <div id="api" class="tab-content">
+            <h2>API Documentation</h2>
+            <p>The Extended IPA Symbols API provides programmatic access to phoneme data, proposals, discussions, and more.</p>
+            <p>Developers can use the following links to explore the API:</p>
+            <ul>
+                <li><a href="/api/docs">Swagger UI</a> - Interactive API documentation</li>
+                <li><a href="/api/redoc">ReDoc</a> - Alternative API documentation</li>
+                <li><a href="/api">API Overview</a> - High-level API description</li>
+            </ul>
+            
+            <h3>Core Endpoints:</h3>
+            <ul>
+                <li><code>/api/languages</code> - List all languages</li>
+                <li><code>/api/languages/{lang_code}/phonemes</code> - Get phonemes for a language</li>
+                <li><code>/api/languages/{lang_code}/extended-phonemes</code> - Get extended IPA phonemes</li>
+                <li><code>/api/languages/{lang_code}/impossible-phonemes</code> - Get impossible phonemes</li>
+            </ul>
+        </div>
+    </div>
+
+    <script>
+        // Tab switching functionality
+        document.addEventListener('DOMContentLoaded', function() {
+            const tabs = document.querySelectorAll('.tab');
+            const tabContents = document.querySelectorAll('.tab-content');
+            
+            tabs.forEach(tab => {
+                tab.addEventListener('click', function() {
+                    // Remove active class from all tabs
+                    tabs.forEach(t => t.classList.remove('active'));
+                    // Add active class to clicked tab
+                    this.classList.add('active');
+                    
+                    // Hide all tab contents
+                    tabContents.forEach(content => content.classList.remove('active'));
+                    
+                    // Show the corresponding tab content
+                    const tabId = this.getAttribute('data-tab');
+                    document.getElementById(tabId).classList.add('active');
+                    
+                    // Load data if needed
+                    if (tabId === 'consonants' && !document.getElementById('consonants-grid').innerHTML) {
+                        loadPhonemeData('english', 'consonant');
+                    } else if (tabId === 'vowels' && !document.getElementById('vowels-grid').innerHTML) {
+                        loadPhonemeData('english', 'vowel');
+                    }
+                });
+            });
+            
+            // Function to load phoneme data
+            function loadPhonemeData(language, type) {
+                const gridId = type === 'consonant' ? 'consonants-grid' : 'vowels-grid';
+                const gridElement = document.getElementById(gridId);
+                const loadingElement = gridElement.previousElementSibling;
+                
+                // Fetch data from API
+                fetch(`/api/languages/${language}/phonemic`)
+                    .then(response => {
+                        if (!response.ok) {
+                            throw new Error('Failed to load phoneme data');
+                        }
+                        return response.json();
+                    })
+                    .then(data => {
+                        // Hide loading indicator
+                        loadingElement.style.display = 'none';
+                        
+                        // Process and display data
+                        const phonemes = type === 'consonant' ? data.consonants : data.vowels;
+                        
+                        if (phonemes.length === 0) {
+                            gridElement.innerHTML = '<p>No phonemes found for this category.</p>';
+                            return;
+                        }
+                        
+                        // Create table
+                        let html = '<table class="phoneme-table">';
+                        
+                        // Add rows
+                        phonemes.forEach(row => {
+                            html += '<tr>';
+                            row.forEach(phoneme => {
+                                if (phoneme) {
+                                    html += `<td>${phoneme.symbol}</td>`;
+                                } else {
+                                    html += '<td></td>';
+                                }
+                            });
+                            html += '</tr>';
+                        });
+                        
+                        html += '</table>';
+                        
+                        // Display impossible phonemes if available
+                        if (data.impossible && data.impossible.length > 0 && type === 'consonant') {
+                            html += '<h3>Impossible Phonemes</h3>';
+                            html += '<div class="impossible-phonemes">';
+                            data.impossible.forEach(phoneme => {
+                                html += `<span class="impossible-phoneme" title="${phoneme.description}">${phoneme.symbol}</span> `;
+                            });
+                            html += '</div>';
+                        }
+                        
+                        gridElement.innerHTML = html;
+                    })
+                    .catch(error => {
+                        console.error('Error loading phoneme data:', error);
+                        loadingElement.style.display = 'none';
+                        gridElement.innerHTML = `
+                            <div class="error">
+                                <p>Error loading phoneme data: ${error.message}</p>
+                                <p>Please ensure the database is properly initialized and contains phoneme data.</p>
+                            </div>
+                        `;
+                    });
+            }
+        });
+    </script>
+</body>
+</html>

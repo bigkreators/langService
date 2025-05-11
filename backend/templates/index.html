@@ -1,0 +1,260 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Interactive Phonemic Chart - Extended IPA Symbols</title>
+    <link rel="stylesheet" href="/css/style.css">
+    <script>
+        // Global configuration
+        window.appConfig = {
+            apiBaseUrl: '/api'
+        };
+    </script>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>Interactive Phonemic Chart</h1>
+            <div class="notification-container">
+                <button class="bell-button" id="notificationBell">
+                    <svg class="bell-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                        <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
+                        <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
+                    </svg>
+                    <span class="notification-badge" id="notificationBadge">0</span>
+                </button>
+                
+                <div class="notifications-dropdown" id="notificationsDropdown">
+                    <div class="notifications-header">
+                        <span>Notifications</span>
+                        <button id="refreshNotifications" class="dismiss-button">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                                <path d="M23 4v6h-6"></path>
+                                <path d="M1 20v-6h6"></path>
+                                <path d="M3.51 9a9 9 0 0 1 14.85-3.36L23 10"></path>
+                                <path d="M20.49 15a9 9 0 0 1-14.85 3.36L1 14"></path>
+                            </svg>
+                        </button>
+                    </div>
+                    
+                    <div class="notifications-list" id="notificationsList">
+                        <!-- Notifications will be populated here -->
+                        <div class="loading-spinner"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="search-container">
+            <input type="text" id="searchInput" placeholder="Search symbols...">
+            <button id="searchButton">Search</button>
+            <button id="clearButton">Clear</button>
+        </div>
+
+        <div class="tabs">
+            <div class="tab active" data-tab="consonants" id="consonants-tab">Consonants</div>
+            <div class="tab" data-tab="vowels" id="vowels-tab">Vowels</div>
+            <div class="tab" data-tab="proposals" id="proposals-tab">Proposals</div>
+            <div class="tab" data-tab="feedback" id="feedback-tab">Feedback</div>
+            <div class="tab" data-tab="api" id="api-tab">API</div>
+        </div>
+
+        <!-- Consonants Tab Content -->
+        <div id="consonants" class="tab-content active">
+            <div class="category-tabs"></div>
+            
+            <table>
+                <tr>
+                    <th></th>
+                    <th colspan="2" scope="col">Bilabial</th>
+                    <th colspan="2" scope="col">Labiodental</th>
+                    <th colspan="2" scope="col">Dental</th>
+                    <th colspan="2" scope="col">Alveolar</th>
+                    <th colspan="2" scope="col">Retroflex</th>
+                    <th colspan="2" scope="col">Alveolo-palatal</th>
+                    <th colspan="2" scope="col">Palatal</th>
+                    <th colspan="2" scope="col">Labial-palatal</th>
+                    <th colspan="2" scope="col">Post-palatal</th>
+                    <th colspan="2" scope="col">labialized postpalatal</th>
+                    <th colspan="2" scope="col">Velar</th>
+                    <th colspan="2" scope="col">Labial-velar</th>
+                    <th colspan="2" scope="col">Uvular</th>
+                    <th colspan="2" scope="col">Epiglottal</th>
+                </tr>
+                <!-- Consonant rows will be loaded dynamically from API data -->
+                <!-- For now, we keep the original structure -->
+                <tr>
+                    <td class="label-cell">Nasal</td>
+                    <td><span class="clickable-text" data-audio-url="/audio/english/Voiceless_Bilabial_Nasal.ogg.mp3">ᴍ</span></td>
+                    <td></td>
+                    <!-- Additional cells... -->
+                </tr>
+                <!-- More rows... -->
+            </table>
+            
+            <h2 style="text-align: center">Other ones</h2>
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
+                <!-- Infoboxes will be loaded dynamically from API data -->
+                <!-- For now, we keep the original structure -->
+            </div>
+            
+            <h2 style="text-align: center">Impossible ones</h2>
+            <table>
+                <!-- Impossible phonemes table -->
+                <!-- Will be populated from API data -->
+            </table>
+        </div>
+        
+        <!-- Vowels Tab Content -->
+        <div id="vowels" class="tab-content">
+            <!-- Vowel content will be loaded from API -->
+            <!-- For now, we keep the original structure -->
+        </div>
+        
+        <!-- Proposals Tab Content -->
+        <div id="proposals" class="tab-content">
+            <h2>Propose New Symbols</h2>
+            <p>Note that when your proposal has been reviewed, you should receive a notification.</p>
+
+            <div class="proposal-form">
+                <div class="form-group">
+                    <label for="symbol">Unicode character or approximation, image, or description:</label>
+                    <input type="text" id="symbol" placeholder="Enter your proposed symbol as a Unicode character or approximation, an image of it, or describe it">
+                    <div class="file-upload">
+                        <input type="file" id="symbol-image" accept="image/*">
+                    </div>
+                </div>
+                
+                <div class="form-group">
+                    <label for="sound-name">Sound Name:</label>
+                    <input type="text" id="sound-name" placeholder="E.g., Voiceless pharyngeal trill or voiceless labialized bilabial fricative">
+                </div>
+                
+                <div class="form-group">
+                    <label for="category">Category:</label>
+                    <select id="category">
+                        <option value="consonant">Consonant</option>
+                        <option value="vowel">Vowel</option>
+                        <option value="other">Other Sound</option>
+                    </select>
+                </div>
+                
+                <div class="form-group">
+                    <label for="rationale">Rationale for Addition:</label>
+                    <textarea id="rationale" rows="4" placeholder="Explain why this symbol should be added to our additional IPA set" style="resize: none;"></textarea>
+                </div>
+                
+                <div class="form-group">
+                    <label for="example-language">Example Language(s) (optional):</label>
+                    <input type="text" id="example-language" placeholder="Languages where this sound is found">
+                </div>
+                
+                <div class="form-group file-upload">
+                    <label class="file-upload-label">Audio Sample (optional):</label>
+                    <input type="file" id="audio-sample" accept="audio/*">
+                </div>
+            </div>
+
+            <button class="proposal-submit-btn" id="submit-proposal">Submit Proposal</button>
+            <h3>Current Proposals</h3>
+            <div class="filter-buttons">
+                <button class="filter-btn active" data-filter="all">All</button>
+                <button class="filter-btn" data-filter="consonant">Consonants</button>
+                <button class="filter-btn" data-filter="vowel">Vowels</button>
+                <button class="filter-btn" data-filter="other">Other Sounds</button>
+            </div>
+
+            <div id="proposals-list" class="proposals-list">
+                <div class="no-proposals">No proposals yet. Be the first to propose a new symbol!</div>
+            </div>
+        </div>
+        
+        <!-- Feedback Tab Content -->
+        <div id="feedback" class="tab-content">
+            <div class="feedback-header">
+                <h2>Discussion Page</h2>
+                <p>Add a new discussion topic or contribute to existing conversations.</p>
+            </div>
+            
+            <!-- New Topic Form -->
+            <div class="topic-form">
+                <h3>Start a new discussion topic</h3>
+                <form id="feedback-form">
+                    <div class="form-group">
+                        <label for="name">Your Name (optional):</label>
+                        <input type="text" id="name" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="email">Email (optional):</label>
+                        <input type="email" id="email" class="form-control">
+                    </div>
+                    <div class="form-group">
+                        <label for="topic-title">Topic Title:</label>
+                        <input type="text" id="topic-title" class="form-control" required>
+                    </div>
+
+                    <div class="form-group">
+                        <label for="feedback-text">Your Message:</label>
+                        <textarea id="feedback-text" class="form-control" rows="5" required></textarea>
+                    </div>
+                    <button type="submit" class="btn">Post New Topic</button>
+                </form>
+            </div>
+            
+            <!-- Feedback Thanks -->
+            <div id="feedback-thanks" class="hidden">
+                <p>Thank you for your contribution! Your topic has been added to the discussion. Note that when someone responds, you should receive a notification.</p>
+            </div>
+            
+            <!-- Topics Section -->
+            <div id="topics-container">
+                <h3>Recent Discussions</h3>
+                <!-- Discussion topics will be loaded from API -->
+            </div>
+        </div>
+        
+        <!-- API Tab Content -->
+        <div id="api" class="tab-content">
+            <h2>API Access</h2>
+            <p>Access the Extended IPA Symbols API to integrate with your applications.</p>
+            <div class="api-links">
+                <ul>
+                    <li><a href="/api" target="_blank">API Documentation</a> - Full documentation of available endpoints</li>
+                    <li><a href="/api/docs" target="_blank">Interactive API Documentation (Swagger UI)</a> - Try out API requests in your browser</li>
+                    <li><a href="/api/redoc" target="_blank">ReDoc API Documentation</a> - Alternative API documentation</li>
+                </ul>
+            </div>
+            <div class="api-overview">
+                <h3>Quick Start</h3>
+                <p>The API is available at the <code>/api</code> base path. Here are some common endpoints:</p>
+                <ul>
+                    <li><code>/api/languages</code> - List all available languages</li>
+                    <li><code>/api/languages/{language_code}/phonemic</code> - Get phoneme data for a language</li>
+                    <li><code>/api/proposals</code> - Access symbol proposals</li>
+                    <li><code>/api/discussions</code> - Access forum discussions</li>
+                </ul>
+                <p>See the <a href="/api" target="_blank">full documentation</a> for more details.</p>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Load main JavaScript file with API integration -->
+    <script src="/js/app.js"></script>
+    <script>
+        // Toggle reply form visibility - needed for HTML inline onclick attributes
+        function toggleReplyForm(button) {
+            const topic = button.closest('.topic');
+            const replyForm = topic.querySelector('.reply-form');
+            
+            if (replyForm.style.display === 'block') {
+                replyForm.style.display = 'none';
+            } else {
+                replyForm.style.display = 'block';
+            }
+        }
+        
+        // Make it available globally
+        window.toggleReplyForm = toggleReplyForm;
+    </script>
+</body>
+</html>

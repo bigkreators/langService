@@ -1,162 +1,89 @@
-# File: backend/app/main.py
-from fastapi import FastAPI
-from fastapi.middleware.cors import CORSMiddleware
+from fastapi import FastAPI, Request, HTTPException
+from fastapi.responses import HTMLResponse, FileResponse
 from fastapi.staticfiles import StaticFiles
-from fastapi.responses import HTMLResponse, RedirectResponse
+from fastapi.middleware.cors import CORSMiddleware
+from fastapi.templating import Jinja2Templates
 import os
+from pathlib import Path
 
-# Import your routers
-try:
-    from .routers import languages, phonemes, audio
-    from .database import engine, Base
-    
-    # Create database tables
-    Base.metadata.create_all(bind=engine)
-    
-    has_routers = True
-except ImportError:
-    # Handle case where routers are not yet defined
-    has_routers = False
+from .routers import languages, phonemes, audio, proposals, discussions, notifications
+from .database import engine, Base
 
+# Create database tables
+Base.metadata.create_all(bind=engine)
+
+# Define application
 app = FastAPI(
     title="Extended IPA Symbols API",
     description="API for Extended IPA Symbols and Phonemic Chart",
-    version="1.0.0"
+    version="1.0.0",
+    docs_url="/api/docs",  # Move Swagger docs to /api/docs
+    redoc_url="/api/redoc",  # Move ReDoc to /api/redoc
+    openapi_url="/api/openapi.json"  # Move OpenAPI schema to /api/openapi.json
 )
 
 # Configure CORS
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Allows all origins
+    allow_origins=["*"],  # For development; restrict in production
     allow_credentials=True,
-    allow_methods=["*"],  # Allows all methods
-    allow_headers=["*"],  # Allows all headers
+    allow_methods=["*"],
+    allow_headers=["*"],
 )
 
-# Mount static files directory if it exists
-static_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "static")
-if os.path.exists(static_dir):
-    app.mount("/static", StaticFiles(directory=static_dir), name="static")
+# Get base directory for static files
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-audio_files_dir = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "audio_files")
-if os.path.exists(audio_files_dir):
-    app.mount("/audio_files", StaticFiles(directory=audio_files_dir), name="audio_files")
+# Mount static files (CSS, JS, etc.)
+app.mount("/css", StaticFiles(directory=os.path.join(BASE_DIR, "css")), name="css")
+app.mount("/js", StaticFiles(directory=os.path.join(BASE_DIR, "js")), name="js")
+app.mount("/images", StaticFiles(directory=os.path.join(BASE_DIR, "images")), name="images")
+app.mount("/audio", StaticFiles(directory=os.path.join(BASE_DIR, "audio_files")), name="audio")
+
+# Setup templates
+templates = Jinja2Templates(directory=os.path.join(BASE_DIR, "templates"))
+
+# Include API routers under /api prefix
+app.include_router(languages.router, prefix="/api", tags=["languages"])
+app.include_router(phonemes.router, prefix="/api", tags=["phonemes"])
+app.include_router(audio.router, prefix="/api", tags=["audio"])
+app.include_router(proposals.router, prefix="/api", tags=["proposals"])
+app.include_router(discussions.router, prefix="/api", tags=["discussions"])
+app.include_router(notifications.router, prefix="/api", tags=["notifications"])
 
 @app.get("/", response_class=HTMLResponse)
-async def root():
-    return """
-    <!DOCTYPE html>
-    <html>
-        <head>
-            <title>Extended IPA Symbols API</title>
-            <style>
-                body {
-                    font-family: Arial, sans-serif;
-                    line-height: 1.6;
-                    max-width: 800px;
-                    margin: 0 auto;
-                    padding: 20px;
-                    color: #333;
-                }
-                h1 {
-                    color: #2563eb;
-                    border-bottom: 2px solid #e5e7eb;
-                    padding-bottom: 10px;
-                }
-                .card {
-                    background: #f9fafb;
-                    border-radius: 8px;
-                    padding: 20px;
-                    margin: 20px 0;
-                    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-                }
-                .endpoints {
-                    list-style-type: none;
-                    padding: 0;
-                }
-                .endpoints li {
-                    margin-bottom: 10px;
-                    padding: 10px;
-                    background: #fff;
-                    border-radius: 4px;
-                    border-left: 4px solid #2563eb;
-                }
-                a {
-                    color: #2563eb;
-                    text-decoration: none;
-                }
-                a:hover {
-                    text-decoration: underline;
-                }
-                .buttons {
-                    display: flex;
-                    gap: 10px;
-                    margin-top: 20px;
-                }
-                .button {
-                    display: inline-block;
-                    background: #2563eb;
-                    color: white;
-                    padding: 10px 15px;
-                    border-radius: 4px;
-                    text-decoration: none;
-                }
-                .button:hover {
-                    background: #1d4ed8;
-                    text-decoration: none;
-                }
-            </style>
-        </head>
-        <body>
-            <h1>Welcome to the Extended IPA Symbols API</h1>
-            
-            <div class="card">
-                <h2>About</h2>
-                <p>This API provides access to Extended IPA (International Phonetic Alphabet) symbols, phonemes, and associated audio files.</p>
-                <p>It includes regular IPA symbols as well as extensions and even "impossible" phonemes that can't be produced by human articulatory organs.</p>
-            </div>
-            
-            <div class="card">
-                <h2>API Documentation</h2>
-                <p>Explore the full API documentation to see all available endpoints and test them interactively.</p>
-                <div class="buttons">
-                    <a href="/docs" class="button">OpenAPI Documentation</a>
-                    <a href="/redoc" class="button">ReDoc Documentation</a>
-                </div>
-            </div>
-            
-            <div class="card">
-                <h2>Key Endpoints</h2>
-                <ul class="endpoints">
-                    <li><strong>GET /api/languages</strong> - List all languages</li>
-                    <li><strong>GET /api/languages/{lang_code}/phonemes</strong> - Get all phonemes for a language</li>
-                    <li><strong>GET /api/languages/{lang_code}/extended-phonemes</strong> - Get extended IPA phonemes</li>
-                    <li><strong>GET /api/languages/{lang_code}/impossible-phonemes</strong> - Get impossible phonemes</li>
-                    <li><strong>GET /api/audio/{lang_code}/{filename}</strong> - Get audio file</li>
-                </ul>
-            </div>
-        </body>
-    </html>
+async def root(request: Request):
     """
+    Serve the main HTML page
+    """
+    # Check if index.html exists, serve it directly
+    index_path = os.path.join(BASE_DIR, "templates", "index.html")
+    if os.path.exists(index_path):
+        return templates.TemplateResponse("index.html", {"request": request})
+    else:
+        # Fallback to the original HTML file
+        html_path = os.path.join(BASE_DIR, "static", "index.html")
+        if os.path.exists(html_path):
+            with open(html_path, "r", encoding="utf-8") as f:
+                html_content = f.read()
+            return HTMLResponse(content=html_content)
+        else:
+            raise HTTPException(status_code=404, detail="HTML template not found")
 
-@app.get("/api")
-async def api_root():
-    """API information endpoint"""
-    return {
-        "message": "Extended IPA Symbols API",
-        "version": "1.0.0",
-        "documentation": "/docs",
-        "endpoints": {
-            "languages": "/api/languages",
-            "phonemes": "/api/languages/{lang_code}/phonemes",
-            "extended_phonemes": "/api/languages/{lang_code}/extended-phonemes",
-            "impossible_phonemes": "/api/languages/{lang_code}/impossible-phonemes",
-            "audio": "/api/audio/{lang_code}/{filename}"
-        }
-    }
+@app.get("/api", response_class=HTMLResponse)
+async def api_documentation(request: Request):
+    """
+    Serve the API documentation as HTML
+    """
+    return templates.TemplateResponse("api.html", {"request": request})
 
-# Include routers if they are available
-if has_routers:
-    app.include_router(languages.router, prefix="/api", tags=["languages"])
-    app.include_router(phonemes.router, prefix="/api", tags=["phonemes"])
-    app.include_router(audio.router, prefix="/api", tags=["audio"])
+@app.get("/favicon.ico", include_in_schema=False)
+async def favicon():
+    """
+    Serve favicon.ico
+    """
+    favicon_path = os.path.join(BASE_DIR, "static", "favicon.ico")
+    if os.path.exists(favicon_path):
+        return FileResponse(favicon_path)
+    else:
+        raise HTTPException(status_code=404, detail="Favicon not found")
