@@ -140,40 +140,6 @@ except Exception as e:
     print(f'Error checking database content: {e}')
 "
 
-# Copy template files if they don't exist
-if [ ! -f "templates/index.html" ]; then
-    echo "Copying template files..."
-    if [ -f "index.html.template" ]; then
-        cp index.html.template templates/index.html
-    fi
-fi
-
-# Copy static files
-if [ -f "scripts/source.html" ] && [ ! -f "static/index.html" ]; then
-    echo "Copying static files from source..."
-    cp scripts/source.html static/index.html
-fi
-
-# Copy CSS file if it exists
-if [ -f "css/style.css" ] && [ ! -f "static/css/style.css" ]; then
-    echo "Copying CSS files..."
-    cp css/style.css static/css/style.css
-fi
-
-# Copy JS file if it exists
-if [ -f "js/app.js" ] && [ ! -f "static/js/app.js" ]; then
-    echo "Copying JS files..."
-    cp js/app.js static/js/app.js
-elif [ -f "js/main.js" ] && [ ! -f "static/js/app.js" ]; then
-    cp js/main.js static/js/app.js
-fi
-
-# Copy audio files if they exist
-if [ -d "audio" ]; then
-    echo "Copying audio files..."
-    cp -r audio/* audio_files/
-fi
-
 # Start the FastAPI server
 echo -e "${GREEN}Starting the FastAPI server...${NC}"
 echo "The server will be available at http://localhost:8000"
