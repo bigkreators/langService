@@ -1,10 +1,10 @@
-# File: backend/app/models/phoneme.py
+# app/models/phoneme.py
 from sqlalchemy import Column, String, Integer, ForeignKey, Enum, Boolean, Text
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
 import enum
 from ..database import Base
+from ..utils.uuid_utils import SqliteUUID
 
 class PhonemeType(enum.Enum):
     consonant = "consonant"
@@ -13,8 +13,8 @@ class PhonemeType(enum.Enum):
 class Phoneme(Base):
     __tablename__ = "phonemes"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    language_id = Column(UUID(as_uuid=True), ForeignKey("languages.id"))
+    id = Column(SqliteUUID, primary_key=True, default=uuid.uuid4)
+    language_id = Column(SqliteUUID, ForeignKey("languages.id"))
     type = Column(Enum(PhonemeType))
     symbol = Column(String)
     ipa = Column(String)

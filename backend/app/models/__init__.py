@@ -1,4 +1,4 @@
-# Import all models to make them available when importing from this package
+# app/models/__init__.py
 from .language import Language
 from .phoneme import Phoneme, PhonemeType
 from .allophone import Allophone

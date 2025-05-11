@@ -1,15 +1,15 @@
-# File: backend/app/models/allophone.py
+# app/models/allophone.py
 from sqlalchemy import Column, String, ForeignKey
 from sqlalchemy.orm import relationship
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from ..database import Base
+from ..utils.uuid_utils import SqliteUUID
 
 class Allophone(Base):
     __tablename__ = "allophones"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    phoneme_id = Column(UUID(as_uuid=True), ForeignKey("phonemes.id"))
+    id = Column(SqliteUUID, primary_key=True, default=uuid.uuid4)
+    phoneme_id = Column(SqliteUUID, ForeignKey("phonemes.id"))
     symbol = Column(String)
     environment = Column(String)
     example = Column(String)

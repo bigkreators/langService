@@ -1,14 +1,14 @@
-# File: backend/app/models/proposal.py
+# app/models/proposal.py
 from sqlalchemy import Column, String, Integer, Text, DateTime
-from sqlalchemy.dialects.postgresql import UUID
 import uuid
 from datetime import datetime
 from ..database import Base
+from ..utils.uuid_utils import SqliteUUID
 
 class Proposal(Base):
     __tablename__ = "proposals"
     
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(SqliteUUID, primary_key=True, default=uuid.uuid4)
     symbol = Column(String, nullable=False)
     sound_name = Column(String, nullable=False)
     category = Column(String, nullable=False)
