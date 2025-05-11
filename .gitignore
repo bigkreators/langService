@@ -41,3 +41,4 @@ tmp/
 .DS_Store
 This .gitignore file ensures that common Python-related files and directories that shouldn't be tracked by Git are ignored. This keeps the repository clean and focused on the essential project files. Individual developers can also maintain their own .gitignore files for personal preferences and tools.
 
+backend/scripts/ipa_symbols.db
