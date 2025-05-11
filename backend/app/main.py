@@ -40,7 +40,7 @@ STATIC_DIR = BASE_DIR / "static"
 app.mount("/css", StaticFiles(directory=os.path.join(STATIC_DIR, "css")), name="css")
 app.mount("/js", StaticFiles(directory=os.path.join(STATIC_DIR, "js")), name="js")
 app.mount("/images", StaticFiles(directory=os.path.join(STATIC_DIR, "images")), name="images")
-app.mount("/audio", StaticFiles(directory=os.path.join(STATIC_DIR, "audio_files")), name="audio")
+app.mount("/audio", StaticFiles(directory=os.path.join(STATIC_DIR, "audio")), name="audio")
 app.mount("/static", StaticFiles(directory=STATIC_DIR), name="static")
 
 # Setup templates

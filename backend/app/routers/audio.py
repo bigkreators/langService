@@ -6,7 +6,7 @@ from pathlib import Path
 router = APIRouter()
 
 # Define base directory for audio files
-AUDIO_DIR = Path(__file__).resolve().parent.parent.parent / "audio_files"
+AUDIO_DIR = Path(__file__).resolve().parent.parent.parent / "audio"
 
 @router.get("/audio/{lang_code}/{filename}")
 async def get_audio(lang_code: str, filename: str):

@@ -69,7 +69,7 @@ async def create_proposal(
     
     # Handle audio file upload if provided
     if audio_file and audio_file.filename:
-        audio_dir = os.path.join("audio_files", "proposals")
+        audio_dir = os.path.join("audio", "proposals")
         os.makedirs(audio_dir, exist_ok=True)
         
         file_extension = os.path.splitext(audio_file.filename)[1]
@@ -154,7 +154,7 @@ def delete_proposal(proposal_id: uuid.UUID, db: Session = Depends(get_db)):
     
     # Remove associated files if they exist
     if proposal.audio_file:
-        audio_path = os.path.join("audio_files", proposal.audio_file)
+        audio_path = os.path.join("audio", proposal.audio_file)
         if os.path.exists(audio_path):
             os.remove(audio_path)
     
