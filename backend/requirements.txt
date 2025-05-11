@@ -8,5 +8,5 @@ aiofiles>=23.1.0
 python-dotenv>=1.0.0
 # Use either
 psycopg2-binary>=2.9.5  # For PostgreSQL
-# or
-sqlite3  # For SQLite (included in Python standard library)
+beautifulsoup4>=4.9.3  # For parsing HTML in extraction scripts
+# sqlite3 is included in Python standard library, no need to install it separately

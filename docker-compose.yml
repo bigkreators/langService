@@ -10,7 +10,13 @@ services:
       - ./backend/audio_files:/app/audio_files
     environment:
       - DATABASE_URL=sqlite:///./ipa_symbols.db
+      # Uncomment for PostgreSQL:
+      # - DATABASE_URL=postgresql://user:password@db:5432/ipa_symbols
     command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    depends_on:
+      # Uncomment if using PostgreSQL:
+      # - db
+      - audio_files_init
 
   # Uncomment if you want to use PostgreSQL instead of SQLite
   # db:
@@ -23,6 +29,31 @@ services:
   #     - POSTGRES_DB=ipa_symbols
   #   ports:
   #     - "5432:5432"
+
+  # Service to ensure audio files directory exists with correct permissions
+  audio_files_init:
+    image: busybox
+    volumes:
+      - ./backend/audio_files:/audio_files
+    command: >
+      sh -c "
+      mkdir -p /audio_files/english
+      mkdir -p /audio_files/spanish
+      mkdir -p /audio_files/french
+      echo 'Audio files directories created.'
+      "
+
+  # Frontend service (uncomment if you have a frontend)
+  # frontend:
+  #   image: node:16
+  #   ports:
+  #     - "3000:3000"
+  #   volumes:
+  #     - ./frontend:/app
+  #   working_dir: /app
+  #   command: npm start
+  #   depends_on:
+  #     - backend
 
 # Uncomment if using PostgreSQL
 # volumes:
