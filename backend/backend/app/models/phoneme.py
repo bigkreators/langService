@@ -1,4 +1,3 @@
-# File: backend/app/models/phoneme.py
 from sqlalchemy import Column, String, Integer, ForeignKey, Enum, Boolean, Text
 from sqlalchemy.orm import relationship
 from sqlalchemy.dialects.postgresql import UUID
@@ -26,9 +25,9 @@ class Phoneme(Base):
     
     # New fields for extended IPA
     is_extended = Column(Boolean, default=False)
-    articulation_type = Column(String, nullable=True)  # e.g., "plosive", "fricative"
-    articulation_place = Column(String, nullable=True)  # e.g., "bilabial", "velar"
-    impossibility_reason = Column(String, nullable=True)  # For impossible phonemes
+    articulation_type = Column(String, nullable=True)
+    articulation_place = Column(String, nullable=True)
+    impossibility_reason = Column(String, nullable=True)
     
     language = relationship("Language", back_populates="phonemes")
     allophones = relationship("Allophone", back_populates="phoneme")

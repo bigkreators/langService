@@ -1,0 +1,43 @@
+__pycache__/
+*.py[cod]
+*$py.class
+
+# Virtual environment
+venv/
+.venv/
+env/
+ENV/
+virtualenv/
+*.egg-info/
+
+# Distribution / packaging
+dist/
+build/
+*.egg
+*.whl
+
+# Installed packages
+site-packages/
+
+# Unit test / coverage reports
+htmlcov/
+.tox/
+.coverage
+nosetests.xml
+*.cover
+*.log
+.pytest_cache/
+
+# IDE-specific files
+.idea/
+.vscode/
+*.swp
+*~
+tmp/
+*.bak
+*.orig
+
+# OS-generated files
+.DS_Store
+This .gitignore file ensures that common Python-related files and directories that shouldn't be tracked by Git are ignored. This keeps the repository clean and focused on the essential project files. Individual developers can also maintain their own .gitignore files for personal preferences and tools.
+

@@ -1,0 +1,29 @@
+version: '3'
+
+services:
+  backend:
+    build: ./backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./backend:/app
+      - ./backend/audio_files:/app/audio_files
+    environment:
+      - DATABASE_URL=sqlite:///./ipa_symbols.db
+    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+
+  # Uncomment if you want to use PostgreSQL instead of SQLite
+  # db:
+  #   image: postgres:13
+  #   volumes:
+  #     - postgres_data:/var/lib/postgresql/data
+  #   environment:
+  #     - POSTGRES_USER=user
+  #     - POSTGRES_PASSWORD=password
+  #     - POSTGRES_DB=ipa_symbols
+  #   ports:
+  #     - "5432:5432"
+
+# Uncomment if using PostgreSQL
+# volumes:
+#   postgres_data:

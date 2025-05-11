@@ -1,4 +1,3 @@
-# File: backend/app/schemas/phoneme.py
 from pydantic import BaseModel
 from typing import List, Optional, Union
 from uuid import UUID
@@ -34,6 +33,8 @@ class PhonemeBase(BaseModel):
     row_position: int
     column_position: int
     audio_file: Optional[str]
+    
+    # Extended IPA fields
     is_extended: Optional[bool] = False
     articulation_type: Optional[str] = None
     articulation_place: Optional[str] = None
