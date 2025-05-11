@@ -1,5 +1,5 @@
 #!/bin/bash
-# startup.sh - Fixed startup script for the Extended IPA Symbols Backend
+# startup.sh - Script to run the Extended IPA Symbols Backend with templates
 
 # Colors for better readability
 GREEN='\033[0;32m'
@@ -13,9 +13,9 @@ echo -e "${BLUE} Extended IPA Symbols - Backend Startup ${NC}"
 echo -e "${BLUE}========================================${NC}"
 
 # Ensure we're in the right directory
-if [ ! -d "app" ] || [ ! -f "setup.py" ]; then
+if [ ! -d "app" ] || [ ! -d "scripts" ]; then
     echo -e "${RED}Error: Please run this script from the backend directory.${NC}"
-    echo "Make sure you're in the directory containing the 'app' folder and setup.py."
+    echo "Make sure app and scripts directories exist."
     exit 1
 fi
 
@@ -39,51 +39,139 @@ fi
 # Install dependencies
 if [ -f "requirements.txt" ]; then
     echo "Installing dependencies..."
-    pip install -U pip
     pip install -r requirements.txt
 else
-    echo -e "${RED}requirements.txt not found.${NC}"
-    exit 1
+    echo -e "${YELLOW}requirements.txt not found. Installing essential packages...${NC}"
+    pip install fastapi uvicorn sqlalchemy pydantic python-multipart aiofiles jinja2 beautifulsoup4
+    pip freeze > requirements.txt
+    echo -e "${GREEN}Basic dependencies installed.${NC}"
 fi
 
-# Create .env file if it doesn't exist
-if [ ! -f ".env" ]; then
-    if [ -f ".env.example" ]; then
-        echo -e "${YELLOW}Creating .env file from .env.example...${NC}"
-        cp .env.example .env
-    else
-        echo -e "${YELLOW}Creating basic .env file...${NC}"
-        echo "DATABASE_URL=sqlite:///./ipa_symbols.db" > .env
-        echo "HOST=0.0.0.0" >> .env
-        echo "PORT=8000" >> .env
-        echo "RELOAD=true" >> .env
-    fi
-    echo -e "${GREEN}.env file created. You may want to review it for customization.${NC}"
+# Create required directories
+echo "Creating required directories..."
+mkdir -p templates
+mkdir -p static/css
+mkdir -p static/js
+mkdir -p static/images
+mkdir -p audio_files/proposals
+
+# Check if source.html exists and extract phonemes if needed
+if [ ! -d "scripts/extended_phonemes.json" ] && [ -f "scripts/source.html" ]; then
+    echo -e "${YELLOW}Extracting phoneme data from HTML...${NC}"
+    cd scripts
+    python -c "
+import os
+import sys
+sys.path.append('..')
+try:
+    from scripts.extract_extended_phonemes import extract_extended_phonemes
+    extract_extended_phonemes()
+    print('Extraction completed.')
+except Exception as e:
+    print(f'Error extracting data: {e}')
+"
+    cd ..
 fi
 
 # Initialize database
 echo "Initializing database..."
-python init_db.py
+python -c "
+import os
+import sys
+from sqlalchemy import create_engine, inspect
+from pathlib import Path
 
-# Extract phoneme data if needed
-if [ ! -f "scripts/extended_phonemes.json" ]; then
-    if [ -f "scripts/source.html" ]; then
-        echo -e "${YELLOW}Extracting phoneme data from HTML...${NC}"
-        # Make sure the working directory is correct for the script
-        cd scripts
-        python extract_extended_phonemes.py
-        cd ..
-    else
-        echo -e "${YELLOW}Warning: source.html not found, cannot extract phoneme data.${NC}"
+# Add the current directory to the Python path
+sys.path.append('.')
+
+try:
+    from app.database import Base, engine
+    
+    # Import models to register with Base
+    from app.models.language import Language
+    from app.models.phoneme import Phoneme, PhonemeType
+    from app.models.allophone import Allophone
+    from app.models.proposal import Proposal
+    from app.models.discussion import DiscussionTopic, DiscussionReply
+    from app.models.notification import Notification
+    
+    # Check if database and tables exist
+    inspector = inspect(engine)
+    tables = inspector.get_table_names()
+    
+    if len(tables) == 0:
+        print('Creating database tables...')
+        Base.metadata.create_all(bind=engine)
+        print('Database tables created successfully.')
+    else:
+        print(f'Database already contains {len(tables)} tables.')
+except Exception as e:
+    print(f'Error initializing database: {e}')
+"
+
+# Import data if database is empty
+echo "Checking if data needs to be imported..."
+python -c "
+import os
+import sys
+sys.path.append('.')
+
+try:
+    from app.database import engine, SessionLocal
+    from app.models.language import Language
+    from sqlalchemy.orm import Session
+    
+    # Check if any languages exist
+    db = SessionLocal()
+    language_count = db.query(Language).count()
+    db.close()
+    
+    if language_count == 0:
+        print('No languages found. Importing data...')
+        
+        # Import language
+        from scripts.import_extended_ipa import import_extended_phonemes
+        import_extended_phonemes()
+        
+        print('Data import completed.')
+    else:
+        print(f'Database already contains {language_count} languages. No need to import data.')
+except Exception as e:
+    print(f'Error checking database content: {e}')
+"
+
+# Copy template files if they don't exist
+if [ ! -f "templates/index.html" ]; then
+    echo "Copying template files..."
+    if [ -f "index.html.template" ]; then
+        cp index.html.template templates/index.html
     fi
-else
-    echo "Phoneme data already exists in scripts directory."
 fi
 
-# Import extended IPA data
-if [ -f "scripts/extended_phonemes.json" ]; then
-    echo "Importing extended IPA data..."
-    python -m scripts.import_extended_ipa
+# Copy static files
+if [ -f "scripts/source.html" ] && [ ! -f "static/index.html" ]; then
+    echo "Copying static files from source..."
+    cp scripts/source.html static/index.html
+fi
+
+# Copy CSS file if it exists
+if [ -f "css/style.css" ] && [ ! -f "static/css/style.css" ]; then
+    echo "Copying CSS files..."
+    cp css/style.css static/css/style.css
+fi
+
+# Copy JS file if it exists
+if [ -f "js/app.js" ] && [ ! -f "static/js/app.js" ]; then
+    echo "Copying JS files..."
+    cp js/app.js static/js/app.js
+elif [ -f "js/main.js" ] && [ ! -f "static/js/app.js" ]; then
+    cp js/main.js static/js/app.js
+fi
+
+# Copy audio files if they exist
+if [ -d "audio" ]; then
+    echo "Copying audio files..."
+    cp -r audio/* audio_files/
 fi
 
 # Start the FastAPI server
@@ -91,5 +179,4 @@ echo -e "${GREEN}Starting the FastAPI server...${NC}"
 echo "The server will be available at http://localhost:8000"
 echo "API documentation will be at http://localhost:8000/api/docs"
 echo -e "${BLUE}========================================${NC}"
-echo "Press Ctrl+C to stop the server"
 uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload

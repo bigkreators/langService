@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded', function() {
     const API_BASE_URL = '/api';
     
     // Global state
-    let currentLanguage = 'english';
+    let currentLanguage = window.appConfig?.currentLanguage || 'english';
     let proposals = [];
     let notifications = [];
     
@@ -25,10 +25,8 @@ document.addEventListener('DOMContentLoaded', function() {
         // Set up audio playback for clickable texts
         initAudioPlayback();
         
-        // Load phoneme data
-        loadLanguages()
-            .then(() => loadPhonemeData(currentLanguage))
-            .catch(err => console.error('Error initializing app:', err));
+        // Initialize admin mode detection
+        initAdminMode();
         
         // Initialize proposals system
         initProposalSystem();
@@ -77,86 +75,113 @@ document.addEventListener('DOMContentLoaded', function() {
                 const audioUrl = event.target.getAttribute('data-audio-url');
                 if (audioUrl) {
                     const audio = new Audio(audioUrl);
-                    audio.play().catch(err => console.error('Error playing audio:', err));
+                    audio.play().catch(err => {
+                        console.error('Error playing audio:', err);
+                        alert('Audio file not found or not supported by your browser.');
+                    });
                 }
             }
         });
     }
     
     /**
-     * Load available languages from the API
+     * Initialize admin mode detection and controls
      */
-    async function loadLanguages() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/languages`);
-            if (!response.ok) throw new Error('Failed to fetch languages');
-            
-            const languages = await response.json();
-            
-            // Populate language selector if it exists
-            const languageSelect = document.getElementById('language-select');
-            if (languageSelect) {
-                languageSelect.innerHTML = ''; // Clear existing options
-                
-                languages.forEach(lang => {
-                    const option = document.createElement('option');
-                    option.value = lang.code;
-                    option.textContent = lang.name;
-                    languageSelect.appendChild(option);
-                });
-                
-                // Set up change event handler
-                languageSelect.addEventListener('change', function() {
-                    currentLanguage = this.value;
-                    loadPhonemeData(currentLanguage);
-                });
+    function initAdminMode() {
+        // Check for admin mode in URL hash
+        if (window.location.hash === "#adminMode") {
+            const adminControls = document.getElementById('admin-controls');
+            if (adminControls) {
+                adminControls.style.display = 'block';
             }
             
-            return languages;
-        } catch (error) {
-            console.error('Error loading languages:', error);
-            throw error;
+            // Show admin buttons on proposals
+            document.querySelectorAll('.proposal-item').forEach(item => {
+                const proposalId = item.getAttribute('data-id');
+                const statusBadge = item.querySelector('.status-badge');
+                
+                if (statusBadge && statusBadge.classList.contains('status-pending')) {
+                    // Add admin control buttons if not already present
+                    if (!item.querySelector('.admin-controls')) {
+                        const proposalVotes = item.querySelector('.proposal-votes');
+                        const adminControls = document.createElement('div');
+                        adminControls.className = 'admin-controls';
+                        adminControls.innerHTML = `
+                            <button class="approve-btn" data-id="${proposalId}">Approve</button>
+                            <button class="reject-btn" data-id="${proposalId}">Reject</button>
+                        `;
+                        proposalVotes.insertAdjacentElement('afterend', adminControls);
+                        
+                        // Add event listeners
+                        adminControls.querySelector('.approve-btn').addEventListener('click', function() {
+                            updateProposalStatus(proposalId, 'approved');
+                        });
+                        
+                        adminControls.querySelector('.reject-btn').addEventListener('click', function() {
+                            updateProposalStatus(proposalId, 'rejected');
+                        });
+                    }
+                }
+            });
         }
-    }
-    
-    /**
-     * Load phoneme data for a specific language from the API
-     */
-    async function loadPhonemeData(languageCode) {
-        try {
-            const response = await fetch(`${API_BASE_URL}/languages/${languageCode}/phonemic`);
-            if (!response.ok) throw new Error(`Failed to fetch phoneme data for ${languageCode}`);
-            
-            const phonemeData = await response.json();
-            
-            // Update the UI with phoneme data
-            updatePhonemeGrid(phonemeData);
-            
-            return phonemeData;
-        } catch (error) {
-            console.error(`Error loading phoneme data for ${languageCode}:`, error);
-            throw error;
-        }
-    }
-    
-    /**
-     * Update the phoneme grid in the UI
-     */
-    function updatePhonemeGrid(phonemeData) {
-        // Implementation depends on your specific UI structure
-        // This is a placeholder for your actual implementation
-        console.log('Updating phoneme grid with data:', phonemeData);
         
-        // For now, we're assuming the HTML is pre-rendered
-        // In a fully dynamic implementation, you would create the table cells here
+        // Exit admin mode button
+        const adminLogout = document.getElementById('admin-logout');
+        if (adminLogout) {
+            adminLogout.addEventListener('click', function() {
+                window.location.hash = '';
+                
+                // Hide admin controls
+                const adminControls = document.getElementById('admin-controls');
+                if (adminControls) {
+                    adminControls.style.display = 'none';
+                }
+                
+                // Remove admin buttons from proposals
+                document.querySelectorAll('.admin-controls').forEach(control => {
+                    control.remove();
+                });
+            });
+        }
+        
+        // Listen for hash changes
+        window.addEventListener('hashchange', function() {
+            if (window.location.hash === "#adminMode") {
+                const adminControls = document.getElementById('admin-controls');
+                if (adminControls) {
+                    adminControls.style.display = 'block';
+                }
+                
+                // Refresh proposals to show admin controls
+                loadProposals();
+            } else {
+                const adminControls = document.getElementById('admin-controls');
+                if (adminControls) {
+                    adminControls.style.display = 'none';
+                }
+                
+                // Remove admin buttons
+                document.querySelectorAll('.admin-controls').forEach(control => {
+                    control.remove();
+                });
+            }
+        });
     }
     
     /**
      * Initialize the proposal system
      */
     function initProposalSystem() {
-        // Load existing proposals
-        loadProposals();
+        // Load existing proposals if not pre-loaded from template
+        if (!document.querySelector('.proposal-item')) {
+            loadProposals();
+        } else {
+            // Get proposals from DOM
+            collectProposalsFromDOM();
+            
+            // Add event listeners to existing proposal items
+            addProposalEventListeners();
+        }
         
         // Set up proposal form submission
         const submitProposalBtn = document.getElementById('submit-proposal');
@@ -175,12 +200,75 @@ document.addEventListener('DOMContentLoaded', function() {
                 displayProposals(filter);
             });
         });
+    }
+    
+    /**
+     * Collect proposal data from DOM elements
+     */
+    function collectProposalsFromDOM() {
+        proposals = [];
+        document.querySelectorAll('.proposal-item').forEach(item => {
+            const proposalId = item.getAttribute('data-id');
+            const symbol = item.querySelector('.proposal-symbol').textContent;
+            const dateElement = item.querySelector('.proposal-date');
+            const date = dateElement.textContent.split('<')[0].trim(); // Remove status badge from text
+            
+            let status = 'pending';
+            const statusBadge = item.querySelector('.status-badge');
+            if (statusBadge) {
+                if (statusBadge.classList.contains('status-approved')) {
+                    status = 'approved';
+                } else if (statusBadge.classList.contains('status-rejected')) {
+                    status = 'rejected';
+                }
+            }
+            
+            const soundName = item.querySelector('.proposal-details p:nth-child(1)').textContent.replace('Sound Name:', '').trim();
+            const category = item.querySelector('.proposal-details p:nth-child(2)').textContent.replace('Category:', '').trim().toLowerCase();
+            const rationale = item.querySelector('.proposal-details p:nth-child(3)').textContent.replace('Rationale:', '').trim();
+            
+            let exampleLanguage = '';
+            const exampleElement = item.querySelector('.proposal-details p:nth-child(4)');
+            if (exampleElement) {
+                exampleLanguage = exampleElement.textContent.replace('Example Languages:', '').trim();
+            }
+            
+            const votes = parseInt(item.querySelector('.vote-count').textContent) || 0;
+            
+            proposals.push({
+                id: proposalId,
+                symbol: symbol,
+                submitted_date: date,
+                status: status,
+                sound_name: soundName,
+                category: category,
+                rationale: rationale,
+                example_language: exampleLanguage,
+                votes: votes
+            });
+        });
+    }
+    
+    /**
+     * Add event listeners to proposal elements
+     */
+    function addProposalEventListeners() {
+        // Vote buttons
+        document.querySelectorAll('.vote-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const proposalId = this.getAttribute('data-id');
+                const voteValue = parseInt(this.getAttribute('data-vote'));
+                voteOnProposal(proposalId, voteValue);
+            });
+        });
         
-        // Set up event delegation for proposal actions
-        const proposalsList = document.getElementById('proposals-list');
-        if (proposalsList) {
-            proposalsList.addEventListener('click', handleProposalAction);
-        }
+        // Delete buttons
+        document.querySelectorAll('.delete-proposal').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const proposalId = this.getAttribute('data-id');
+                deleteProposal(proposalId);
+            });
+        });
     }
     
     /**
@@ -196,8 +284,11 @@ document.addEventListener('DOMContentLoaded', function() {
         } catch (error) {
             console.error('Error loading proposals:', error);
             
-            // Fallback to local storage if API fails
-            proposals = JSON.parse(localStorage.getItem('ipaProposals')) || [];
+            // If we already have proposals from DOM, use those
+            if (proposals.length === 0) {
+                collectProposalsFromDOM();
+            }
+            
             displayProposals('all');
         }
     }
@@ -229,19 +320,22 @@ document.addEventListener('DOMContentLoaded', function() {
         }
         
         // Create and append proposal items
-        filteredProposals.forEach((proposal, index) => {
-            const proposalItem = createProposalElement(proposal, index);
+        filteredProposals.forEach((proposal) => {
+            const proposalItem = createProposalElement(proposal);
             proposalsList.appendChild(proposalItem);
         });
+        
+        // Add event listeners to new elements
+        addProposalEventListeners();
     }
     
     /**
      * Create a proposal element for display
      */
-    function createProposalElement(proposal, index) {
+    function createProposalElement(proposal) {
         const proposalItem = document.createElement('div');
         proposalItem.className = 'proposal-item';
-        proposalItem.setAttribute('data-id', proposal.id || index);
+        proposalItem.setAttribute('data-id', proposal.id);
         proposalItem.style.position = 'relative';
         
         // Create status badge
@@ -267,8 +361,10 @@ document.addEventListener('DOMContentLoaded', function() {
         
         // Format date
         const date = proposal.submitted_date 
-            ? new Date(proposal.submitted_date).toLocaleDateString()
-            : proposal.date || 'Unknown date';
+            ? (typeof proposal.submitted_date === 'string' && proposal.submitted_date.includes('T') 
+               ? new Date(proposal.submitted_date).toLocaleDateString()
+               : proposal.submitted_date)
+            : 'Unknown date';
         
         // Build HTML
         proposalItem.innerHTML = `
@@ -277,7 +373,7 @@ document.addEventListener('DOMContentLoaded', function() {
                 <div class="proposal-date">${date}${statusBadge}</div>
             </div>
             <div class="proposal-details">
-                <p><strong>Sound Name:</strong> ${proposal.sound_name || proposal.soundName}</p>
+                <p><strong>Sound Name:</strong> ${proposal.sound_name}</p>
                 <p><strong>Category:</strong> ${proposal.category.charAt(0).toUpperCase() + proposal.category.slice(1)}</p>
                 <p><strong>Rationale:</strong> ${proposal.rationale}</p>
                 ${proposal.example_language ? `<p><strong>Example Languages:</strong> ${proposal.example_language}</p>` : ''}
@@ -295,87 +391,96 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
-     * Handle proposal actions (voting, approving, rejecting, deleting)
+     * Vote on a proposal
      */
-    async function handleProposalAction(event) {
-        const target = event.target;
-        const proposalId = target.getAttribute('data-id');
-        
-        if (!proposalId) return;
+    async function voteOnProposal(proposalId, voteValue) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/proposals/${proposalId}/vote`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ vote: voteValue })
+            });
+            
+            if (!response.ok) throw new Error('Failed to vote on proposal');
+            
+            // Update proposal in memory
+            const updatedProposal = await response.json();
+            const index = proposals.findIndex(p => p.id === proposalId);
+            if (index !== -1) proposals[index] = updatedProposal;
+            
+            // Update display
+            displayProposals(getCurrentFilter());
+        } catch (error) {
+            console.error('Error voting on proposal:', error);
+            alert('Error voting on proposal. Please try again.');
+            
+            // Update locally as fallback
+            const index = proposals.findIndex(p => p.id === proposalId);
+            if (index !== -1) {
+                proposals[index].votes = (proposals[index].votes || 0) + voteValue;
+                displayProposals(getCurrentFilter());
+            }
+        }
+    }
+    
+    /**
+     * Update proposal status (admin function)
+     */
+    async function updateProposalStatus(proposalId, status) {
+        try {
+            const response = await fetch(`${API_BASE_URL}/proposals/${proposalId}/status`, {
+                method: 'PUT',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ status: status })
+            });
+            
+            if (!response.ok) throw new Error(`Failed to ${status} proposal`);
+            
+            // Update proposal in memory
+            const updatedProposal = await response.json();
+            const index = proposals.findIndex(p => p.id === proposalId);
+            if (index !== -1) proposals[index] = updatedProposal;
+            
+            // Update display
+            displayProposals(getCurrentFilter());
+        } catch (error) {
+            console.error(`Error ${status} proposal:`, error);
+            alert(`Error ${status} proposal. Please try again.`);
+            
+            // Update locally as fallback
+            const index = proposals.findIndex(p => p.id === proposalId);
+            if (index !== -1) {
+                proposals[index].status = status;
+                displayProposals(getCurrentFilter());
+            }
+        }
+    }
+    
+    /**
+     * Delete a proposal
+     */
+    async function deleteProposal(proposalId) {
+        if (!confirm('Are you sure you want to delete this proposal?')) return;
         
         try {
-            if (target.classList.contains('upvote') || target.classList.contains('downvote')) {
-                // Handle voting
-                const vote = parseInt(target.getAttribute('data-vote'));
-                
-                const response = await fetch(`${API_BASE_URL}/proposals/${proposalId}/vote`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ vote })
-                });
-                
-                if (!response.ok) throw new Error('Failed to vote on proposal');
-                
-                // Update proposal in memory
-                const updatedProposal = await response.json();
-                const index = proposals.findIndex(p => p.id === proposalId);
-                if (index !== -1) proposals[index] = updatedProposal;
-                
-                // Update display
-                displayProposals(getCurrentFilter());
-            } else if (target.classList.contains('approve-btn')) {
-                // Handle approval
-                const response = await fetch(`${API_BASE_URL}/proposals/${proposalId}/status`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'approved' })
-                });
-                
-                if (!response.ok) throw new Error('Failed to approve proposal');
-                
-                // Update proposal in memory
-                const updatedProposal = await response.json();
-                const index = proposals.findIndex(p => p.id === proposalId);
-                if (index !== -1) proposals[index] = updatedProposal;
-                
-                // Update display
-                displayProposals(getCurrentFilter());
-            } else if (target.classList.contains('reject-btn')) {
-                // Handle rejection
-                const response = await fetch(`${API_BASE_URL}/proposals/${proposalId}/status`, {
-                    method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ status: 'rejected' })
-                });
-                
-                if (!response.ok) throw new Error('Failed to reject proposal');
-                
-                // Update proposal in memory
-                const updatedProposal = await response.json();
-                const index = proposals.findIndex(p => p.id === proposalId);
-                if (index !== -1) proposals[index] = updatedProposal;
-                
-                // Update display
-                displayProposals(getCurrentFilter());
-            } else if (target.classList.contains('delete-proposal')) {
-                // Handle deletion
-                if (confirm('Are you sure you want to delete this proposal?')) {
-                    const response = await fetch(`${API_BASE_URL}/proposals/${proposalId}`, {
-                        method: 'DELETE'
-                    });
-                    
-                    if (!response.ok) throw new Error('Failed to delete proposal');
-                    
-                    // Remove from memory
-                    proposals = proposals.filter(p => p.id !== proposalId);
-                    
-                    // Update display
-                    displayProposals(getCurrentFilter());
-                }
-            }
+            const response = await fetch(`${API_BASE_URL}/proposals/${proposalId}`, {
+                method: 'DELETE'
+            });
+            
+            if (!response.ok) throw new Error('Failed to delete proposal');
+            
+            // Remove from memory
+            proposals = proposals.filter(p => p.id !== proposalId);
+            
+            // Update display
+            displayProposals(getCurrentFilter());
         } catch (error) {
-            console.error('Error handling proposal action:', error);
-            alert('An error occurred. Please try again.');
+            console.error('Error deleting proposal:', error);
+            alert('Error deleting proposal. Please try again.');
+            
+            // Remove locally as fallback
+            proposals = proposals.filter(p => p.id !== proposalId);
+            displayProposals(getCurrentFilter());
         }
     }
     
@@ -440,35 +545,7 @@ document.addEventListener('DOMContentLoaded', function() {
             alert('Your proposal has been submitted successfully!');
         } catch (error) {
             console.error('Error submitting proposal:', error);
-            
-            // Fallback to local storage if API fails
-            const newProposal = {
-                id: Date.now().toString(),
-                symbol: document.getElementById('symbol').value,
-                soundName: document.getElementById('sound-name').value,
-                category: document.getElementById('category').value,
-                rationale: document.getElementById('rationale').value,
-                exampleLanguage: document.getElementById('example-language').value,
-                date: new Date().toLocaleDateString(),
-                status: 'pending',
-                votes: 0
-            };
-            
-            proposals.unshift(newProposal);
-            localStorage.setItem('ipaProposals', JSON.stringify(proposals));
-            
-            // Clear form
-            document.getElementById('symbol').value = '';
-            document.getElementById('sound-name').value = '';
-            document.getElementById('rationale').value = '';
-            document.getElementById('example-language').value = '';
-            document.getElementById('audio-sample').value = '';
-            document.getElementById('symbol-image').value = '';
-            
-            // Update display
-            displayProposals(getCurrentFilter());
-            
-            alert('Your proposal has been saved locally. Note that it will not be synchronized with the server.');
+            alert('Error submitting proposal. Please try again.');
         }
     }
     
@@ -476,9 +553,6 @@ document.addEventListener('DOMContentLoaded', function() {
      * Initialize discussion forum functionality
      */
     function initDiscussionForum() {
-        // Load existing topics
-        loadDiscussionTopics();
-        
         // Set up topic form submission
         const feedbackForm = document.getElementById('feedback-form');
         if (feedbackForm) {
@@ -495,40 +569,68 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
-     * Load discussion topics from the API
+     * Submit a new discussion topic
      */
-    async function loadDiscussionTopics() {
-        try {
-            const response = await fetch(`${API_BASE_URL}/discussions`);
-            if (!response.ok) throw new Error('Failed to fetch discussion topics');
-            
-            const topics = await response.json();
-            
-            // Update UI with topics
-            displayDiscussionTopics(topics);
-        } catch (error) {
-            console.error('Error loading discussion topics:', error);
-            // No fallback for discussions - they require the API
+    async function submitDiscussionTopic(event) {
+        event.preventDefault();
+        
+        // Get form data
+        const topicData = {
+            title: document.getElementById('topic-title').value,
+            content: document.getElementById('feedback-text').value,
+            author_name: document.getElementById('name').value || 'Anonymous',
+            author_email: document.getElementById('email')?.value || null
+        };
+        
+        // Basic validation
+        if (!topicData.title || !topicData.content) {
+            alert('Please provide both a title and content for your topic');
+            return;
         }
-    }
-    
-    /**
-     * Display discussion topics in the UI
-     */
-    function displayDiscussionTopics(topics) {
-        const topicsContainer = document.getElementById('topics-container');
-        if (!topicsContainer) return;
         
-        // Keep the heading
-        const heading = topicsContainer.querySelector('h3');
-        topicsContainer.innerHTML = '';
-        if (heading) topicsContainer.appendChild(heading);
-        
-        // Add each topic
-        topics.forEach(topic => {
-            const topicElement = createTopicElement(topic);
-            topicsContainer.appendChild(topicElement);
-        });
+        try {
+            // Submit to API
+            const response = await fetch(`${API_BASE_URL}/discussions`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(topicData)
+            });
+            
+            if (!response.ok) throw new Error('Failed to submit discussion topic');
+            
+            const newTopic = await response.json();
+            
+            // Show thanks message
+            const feedbackThanks = document.getElementById('feedback-thanks');
+            if (feedbackThanks) {
+                feedbackThanks.classList.remove('hidden');
+                
+                // Hide thanks message after 3 seconds
+                setTimeout(() => {
+                    feedbackThanks.classList.add('hidden');
+                }, 3000);
+            }
+            
+            // Reset form
+            document.getElementById('feedback-form').reset();
+            
+            // Add new topic to the page
+            const topicsContainer = document.getElementById('topics-container');
+            const headerElement = topicsContainer.querySelector('h3');
+            
+            // Create the new topic element
+            const topicElement = createTopicElement(newTopic);
+            
+            // Insert after heading
+            if (headerElement && headerElement.nextElementSibling) {
+                topicsContainer.insertBefore(topicElement, headerElement.nextElementSibling);
+            } else {
+                topicsContainer.appendChild(topicElement);
+            }
+        } catch (error) {
+            console.error('Error submitting discussion topic:', error);
+            alert('Error submitting discussion topic. Please try again.');
+        }
     }
     
     /**
@@ -546,7 +648,11 @@ document.addEventListener('DOMContentLoaded', function() {
                 month: 'long',
                 day: 'numeric'
               })
-            : 'Unknown date';
+            : new Date().toLocaleDateString('en-US', {
+                year: 'numeric',
+                month: 'long',
+                day: 'numeric'
+              });
         
         // Create topic content
         topicElement.innerHTML = `
@@ -596,7 +702,11 @@ document.addEventListener('DOMContentLoaded', function() {
                     month: 'long',
                     day: 'numeric'
                   })
-                : 'Unknown date';
+                : new Date().toLocaleDateString('en-US', {
+                    year: 'numeric',
+                    month: 'long',
+                    day: 'numeric'
+                  });
             
             return `
                 <div class="reply" data-id="${reply.id}">
@@ -605,60 +715,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 </div>
             `;
         }).join('');
-    }
-    
-    /**
-     * Submit a new discussion topic
-     */
-    async function submitDiscussionTopic(event) {
-        event.preventDefault();
-        
-        // Get form data
-        const topicData = {
-            title: document.getElementById('topic-title').value,
-            content: document.getElementById('feedback-text').value,
-            author_name: document.getElementById('name').value || 'Anonymous',
-            author_email: document.getElementById('email')?.value || null
-        };
-        
-        // Basic validation
-        if (!topicData.title || !topicData.content) {
-            alert('Please provide both a title and content for your topic');
-            return;
-        }
-        
-        try {
-            // Submit to API
-            const response = await fetch(`${API_BASE_URL}/discussions`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify(topicData)
-            });
-            
-            if (!response.ok) throw new Error('Failed to submit discussion topic');
-            
-            const newTopic = await response.json();
-            
-            // Show thanks message
-            const feedbackThanks = document.getElementById('feedback-thanks');
-            if (feedbackThanks) {
-                feedbackThanks.classList.remove('hidden');
-                
-                // Hide thanks message after 3 seconds
-                setTimeout(() => {
-                    feedbackThanks.classList.add('hidden');
-                }, 3000);
-            }
-            
-            // Reset form
-            document.getElementById('feedback-form').reset();
-            
-            // Reload topics to include the new one
-            loadDiscussionTopics();
-        } catch (error) {
-            console.error('Error submitting discussion topic:', error);
-            alert('An error occurred. Please try again.');
-        }
     }
     
     /**
@@ -723,7 +779,7 @@ document.addEventListener('DOMContentLoaded', function() {
             repliesContainer.appendChild(replyElement);
         } catch (error) {
             console.error('Error submitting reply:', error);
-            alert('An error occurred. Please try again.');
+            alert('Error submitting reply. Please try again.');
         }
     }
     
@@ -757,9 +813,6 @@ document.addEventListener('DOMContentLoaded', function() {
                 refreshButton.addEventListener('click', loadNotifications);
             }
         }
-        
-        // Initial load
-        loadNotifications();
     }
     
     /**
@@ -822,7 +875,7 @@ document.addEventListener('DOMContentLoaded', function() {
             errorNote.textContent = 'Error loading notifications. Please try again.';
             notificationsList.appendChild(errorNote);
             
-            // Use placeholder notifications for demo
+            // Use placeholder notifications
             usePlaceholderNotifications();
         }
     }
@@ -961,7 +1014,7 @@ document.addEventListener('DOMContentLoaded', function() {
     }
     
     /**
-     * Use placeholder notifications for demo
+     * Use placeholder notifications when API fails
      */
     function usePlaceholderNotifications() {
         // Create some placeholder notifications
@@ -1014,6 +1067,7 @@ document.addEventListener('DOMContentLoaded', function() {
     function initSearchFunctionality() {
         const searchInput = document.getElementById('searchInput');
         const searchButton = document.getElementById('searchButton');
+        const clearButton = document.getElementById('clearButton');
         
         if (searchInput && searchButton) {
             searchButton.addEventListener('click', performSearch);
@@ -1022,27 +1076,10 @@ document.addEventListener('DOMContentLoaded', function() {
                     performSearch();
                 }
             });
-            
-            // Add clear button if not already present
-            const clearButton = document.getElementById('clearButton');
-            if (!clearButton) {
-                const searchContainer = document.querySelector('.search-container');
-                if (searchContainer) {
-                    const clearBtn = document.createElement('button');
-                    clearBtn.id = 'clearButton';
-                    clearBtn.textContent = 'Clear';
-                    clearBtn.style.padding = '10px 15px';
-                    clearBtn.style.backgroundColor = '#f44336';
-                    clearBtn.style.color = 'white';
-                    clearBtn.style.border = 'none';
-                    clearBtn.style.borderRadius = '4px';
-                    clearBtn.style.marginLeft = '10px';
-                    clearBtn.style.cursor = 'pointer';
-                    clearBtn.addEventListener('click', clearSearch);
-                    
-                    searchContainer.appendChild(clearBtn);
-                }
-            }
+        }
+        
+        if (clearButton) {
+            clearButton.addEventListener('click', clearSearch);
         }
     }
     

@@ -1,28 +1,32 @@
+```html
+<!-- File: backend/templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Interactive Phonemic Chart - Extended IPA Symbols</title>
+    <title>My Additional IPA Symbols</title>
     <link rel="stylesheet" href="/css/style.css">
     <script>
-        // Global configuration
+        // Global configuration with data from backend
         window.appConfig = {
-            apiBaseUrl: '/api'
+            apiBaseUrl: '/api',
+            initialData: {{ initial_data | safe }},
+            currentLanguage: "{{ current_language }}"
         };
     </script>
 </head>
 <body>
     <div class="container">
         <div class="header">
-            <h1>Interactive Phonemic Chart</h1>
+            <h1>My Additional IPA Symbols</h1>
             <div class="notification-container">
                 <button class="bell-button" id="notificationBell">
                     <svg class="bell-icon" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
                         <path d="M18 8A6 6 0 0 0 6 8c0 7-3 9-3 9h18s-3-2-3-9"></path>
                         <path d="M13.73 21a2 2 0 0 1-3.46 0"></path>
                     </svg>
-                    <span class="notification-badge" id="notificationBadge">0</span>
+                    <span class="notification-badge" id="notificationBadge">{{ unread_notifications }}</span>
                 </button>
                 
                 <div class="notifications-dropdown" id="notificationsDropdown">
@@ -56,7 +60,6 @@
             <div class="tab" data-tab="vowels" id="vowels-tab">Vowels</div>
             <div class="tab" data-tab="proposals" id="proposals-tab">Proposals</div>
             <div class="tab" data-tab="feedback" id="feedback-tab">Feedback</div>
-            <div class="tab" data-tab="api" id="api-tab">API</div>
         </div>
 
         <!-- Consonants Tab Content -->
@@ -81,38 +84,160 @@
                     <th colspan="2" scope="col">Uvular</th>
                     <th colspan="2" scope="col">Epiglottal</th>
                 </tr>
-                <!-- Consonant rows will be loaded dynamically from API data -->
-                <!-- For now, we keep the original structure -->
+                {% for row in consonants %}
                 <tr>
-                    <td class="label-cell">Nasal</td>
-                    <td><span class="clickable-text" data-audio-url="/audio/english/Voiceless_Bilabial_Nasal.ogg.mp3">ᴍ</span></td>
-                    <td></td>
-                    <!-- Additional cells... -->
+                    <td class="label-cell">{{ row.0.manner }}</td>
+                    {% for cell in row %}
+                    <td>
+                        {% if cell.symbol %}
+                        <span class="clickable-text" data-audio-url="{{ cell.audio_url }}">{{ cell.symbol }}</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
                 </tr>
-                <!-- More rows... -->
+                {% endfor %}
             </table>
             
             <h2 style="text-align: center">Other ones</h2>
             <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
-                <!-- Infoboxes will be loaded dynamically from API data -->
-                <!-- For now, we keep the original structure -->
+                {% for other in other_consonants %}
+                <table class="infobox" style="width: 30%; margin-bottom: 20px;">
+                    <tbody>
+                        <tr>
+                            <th class="infobox-above" colspan="2" style="background: #f2f2ce;">
+                                {{ other.description }}
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="infobox-header" colspan="2" style="background: #ffffe6;">
+                                <span style="font-size: 5em; line-height: 1.2em; vertical-align: super; font-weight: normal;" class="IPA nowrap">
+                                    {{ other.symbol }}
+                                </span>
+                            </th>
+                        </tr>
+                        {% if other.audio_url %}
+                        <tr>
+                            <td class="infobox-full-data center" colspan="2">
+                              <span>
+                            <audio src="{{ other.audio_url }}" controls></audio>
+                             </span>
+                            </td>
+                        </tr>
+                        {% endif %}
+                    </tbody>
+                </table>
+                {% endfor %}
             </div>
             
             <h2 style="text-align: center">Impossible ones</h2>
             <table>
-                <!-- Impossible phonemes table -->
-                <!-- Will be populated from API data -->
+                <tr>
+                    <th></th>
+                    <th colspan="2" scope="col">Bilabial</th>
+                    <th colspan="2" scope="col">Labiodental</th>
+                    <th colspan="2" scope="col">Linguolabial</th>
+                    <th colspan="2" scope="col">Palatal</th>
+                    <th colspan="2" scope="col">Velar</th>
+                    <th colspan="2" scope="col">Uvular</th>
+                    <th colspan="2" scope="col">Pharyngeal</th>
+                    <th colspan="2" scope="col">Epiglottal</th>
+                    <th colspan="2" scope="col">Glottal</th>
+                </tr>
+                {% for row in impossible_consonants %}
+                <tr>
+                    <td class="label-cell">{{ row.0.manner }}</td>
+                    {% for cell in row %}
+                    <td {% if cell.impossible %}style="background-color: #d1d4da;"{% endif %}>
+                        {% if cell.symbol and cell.impossible %}
+                        <span class="clickable-text" data-audio-url="{{ cell.audio_url }}" title="{{ cell.impossibility_reason }}">{{ cell.symbol }}</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
             </table>
         </div>
         
         <!-- Vowels Tab Content -->
         <div id="vowels" class="tab-content">
-            <!-- Vowel content will be loaded from API -->
-            <!-- For now, we keep the original structure -->
+            <div class="category-tabs"></div>
+            <table>
+                <tr>
+                    <th></th>
+                    <th colspan="2">Front</th>
+                    <th colspan="2">Central</th>
+                    <th colspan="2">Back</th>
+                </tr>
+                <tr>
+                    <th></th>
+                    <th>Unrounded</th>
+                    <th>Rounded</th>
+                    <th>Unrounded</th>
+                    <th>Rounded</th>
+                    <th>Unrounded</th>
+                    <th>Rounded</th>
+                </tr>
+                {% for row in vowels %}
+                <tr>
+                    <td class="label-cell">{{ row.0.height }}</td>
+                    {% for cell in row %}
+                    <td>
+                        {% if cell.symbol %}
+                        <span class="clickable-text" data-audio-url="{{ cell.audio_url }}">{{ cell.symbol }}</span>
+                        {% endif %}
+                    </td>
+                    {% endfor %}
+                </tr>
+                {% endfor %}
+            </table>
+            
+            <h2 style="text-align: center">Other ones</h2>
+            <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
+                {% for other in other_vowels %}
+                <table class="infobox" style="width: 30%; margin-bottom: 20px; height: 133px; box-sizing: border-box;">
+                    <tbody>
+                        <tr>
+                            <th class="infobox-above" colspan="2" style="background: #f2f2ce;">
+                                {{ other.description }}
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="infobox-header" colspan="2" style="background: #ffffe6;">
+                                <span style="font-size: 5em; line-height: 1.2em; vertical-align: super; font-weight: normal;">
+                                    <span class="IPA nowrap">
+                                        {{ other.symbol }}
+                                    </span>
+                                </span>
+                            </th>
+                        </tr>
+                        {% if other.audio_url %}
+                        <tr>
+                            <td class="infobox-full-data center" colspan="2">
+                             <span>
+                           <audio src="{{ other.audio_url }}" controls></audio>
+                            </span>
+                           </td>
+                       </tr>
+                       {% endif %}
+                    </tbody>
+                </table>
+                {% endfor %}
+            </div>
         </div>
         
         <!-- Proposals Tab Content -->
         <div id="proposals" class="tab-content">
+            <div id="admin-controls" class="admin-panel" style="display: none;">
+                <div class="admin-header">
+                    <h3>Admin Controls</h3>
+                    <p>You are currently in admin mode. You can approve or reject proposals.</p>
+                    <button id="admin-logout">Exit Admin Mode</button>
+                </div>
+                <div class="admin-stats">
+                    <p>Pending proposals: <span id="pending-count">0</span></p>
+                </div>
+            </div>
+
             <h2>Propose New Symbols</h2>
             <p>Note that when your proposal has been reviewed, you should receive a notification.</p>
 
@@ -165,7 +290,40 @@
             </div>
 
             <div id="proposals-list" class="proposals-list">
+                {% if proposals %}
+                    {% for proposal in proposals %}
+                    <div class="proposal-item" data-id="{{ proposal.id }}">
+                        <div class="proposal-header">
+                            <div class="proposal-symbol">{{ proposal.symbol }}</div>
+                            <div class="proposal-date">{{ proposal.submitted_date }}
+                                {% if proposal.status == "pending" %}
+                                <span class="status-badge status-pending">Pending</span>
+                                {% elif proposal.status == "approved" %}
+                                <span class="status-badge status-approved">Approved</span>
+                                {% else %}
+                                <span class="status-badge status-rejected">Rejected</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="proposal-details">
+                            <p><strong>Sound Name:</strong> {{ proposal.sound_name }}</p>
+                            <p><strong>Category:</strong> {{ proposal.category|title }}</p>
+                            <p><strong>Rationale:</strong> {{ proposal.rationale }}</p>
+                            {% if proposal.example_language %}
+                            <p><strong>Example Languages:</strong> {{ proposal.example_language }}</p>
+                            {% endif %}
+                        </div>
+                        <div class="proposal-votes">
+                            <button class="vote-btn upvote" data-id="{{ proposal.id }}" data-vote="1">👍 Upvote</button>
+                            <button class="vote-btn downvote" data-id="{{ proposal.id }}" data-vote="-1">👎 Downvote</button>
+                            <span class="vote-count">{{ proposal.votes }}</span>
+                        </div>
+                        <button class="delete-proposal" data-id="{{ proposal.id }}">×</button>
+                    </div>
+                    {% endfor %}
+                {% else %}
                 <div class="no-proposals">No proposals yet. Be the first to propose a new symbol!</div>
+                {% endif %}
             </div>
         </div>
         
@@ -209,38 +367,100 @@
             <!-- Topics Section -->
             <div id="topics-container">
                 <h3>Recent Discussions</h3>
-                <!-- Discussion topics will be loaded from API -->
-            </div>
-        </div>
-        
-        <!-- API Tab Content -->
-        <div id="api" class="tab-content">
-            <h2>API Access</h2>
-            <p>Access the Extended IPA Symbols API to integrate with your applications.</p>
-            <div class="api-links">
-                <ul>
-                    <li><a href="/api" target="_blank">API Documentation</a> - Full documentation of available endpoints</li>
-                    <li><a href="/api/docs" target="_blank">Interactive API Documentation (Swagger UI)</a> - Try out API requests in your browser</li>
-                    <li><a href="/api/redoc" target="_blank">ReDoc API Documentation</a> - Alternative API documentation</li>
-                </ul>
-            </div>
-            <div class="api-overview">
-                <h3>Quick Start</h3>
-                <p>The API is available at the <code>/api</code> base path. Here are some common endpoints:</p>
-                <ul>
-                    <li><code>/api/languages</code> - List all available languages</li>
-                    <li><code>/api/languages/{language_code}/phonemic</code> - Get phoneme data for a language</li>
-                    <li><code>/api/proposals</code> - Access symbol proposals</li>
-                    <li><code>/api/discussions</code> - Access forum discussions</li>
-                </ul>
-                <p>See the <a href="/api" target="_blank">full documentation</a> for more details.</p>
+                {% if topics %}
+                    {% for topic in topics %}
+                    <div class="topic" data-id="{{ topic.id }}">
+                        <div class="topic-header">
+                            <h4 class="topic-title">{{ topic.title }}</h4>
+                            <span class="topic-meta">Posted by {{ topic.author_name or "Anonymous" }} on {{ topic.created_date }}</span>
+                        </div>
+                        <div class="topic-content">
+                            <p>{{ topic.content }}</p>
+                        </div>
+                        <div class="replies">
+                            {% for reply in topic.replies %}
+                            <div class="reply" data-id="{{ reply.id }}">
+                                <div class="reply-meta">{{ reply.author_name or "Anonymous" }} on {{ reply.created_date }}</div>
+                                <p>{{ reply.content }}</p>
+                            </div>
+                            {% endfor %}
+                        </div>
+                        <div class="topic-actions">
+                            <button class="btn reply-btn" onclick="toggleReplyForm(this)">Reply</button>
+                        </div>
+                        <div class="reply-form">
+                            <form class="topic-reply-form">
+                                <input type="hidden" name="topic-id" value="{{ topic.id }}">
+                                <div class="form-group">
+                                    <label for="reply-name-{{ topic.id }}">Your Name (optional):</label>
+                                    <input type="text" class="reply-name form-control" id="reply-name-{{ topic.id }}">
+                                </div>
+                                <div class="form-group">
+                                    <label for="reply-text-{{ topic.id }}">Your Reply:</label>
+                                    <textarea class="reply-text form-control" rows="3" required id="reply-text-{{ topic.id }}"></textarea>
+                                </div>
+                                <button type="submit" class="btn">Post Reply</button>
+                            </form>
+                        </div>
+                    </div>
+                    {% endfor %}
+                {% else %}
+                <!-- Example topics will be shown if no real topics exist yet -->
+                <div class="topic">
+                    <div class="topic-header">
+                        <h4 class="topic-title">Welcome to the discussion page</h4>
+                        <span class="topic-meta">Posted by Admin on {{ current_date }}</span>
+                    </div>
+                    <div class="topic-content">
+                        <p>Welcome to the Extended IPA Symbols discussion page. Feel free to start a conversation or propose new symbols.</p>
+                    </div>
+                    <div class="topic-actions">
+                        <button class="btn reply-btn" onclick="toggleReplyForm(this)">Reply</button>
+                    </div>
+                    <div class="reply-form">
+                        <form class="topic-reply-form">
+                            <input type="hidden" name="topic-id" value="welcome">
+                            <div class="form-group">
+                                <label for="reply-name-welcome">Your Name (optional):</label>
+                                <input type="text" class="reply-name form-control" id="reply-name-welcome">
+                            </div>
+                            <div class="form-group">
+                                <label for="reply-text-welcome">Your Reply:</label>
+                                <textarea class="reply-text form-control" rows="3" required id="reply-text-welcome"></textarea>
+                            </div>
+                            <button type="submit" class="btn">Post Reply</button>
+                        </form>
+                    </div>
+                </div>
+                {% endif %}
             </div>
         </div>
     </div>
     
-    <!-- Load main JavaScript file with API integration -->
-    <script src="/js/app.js"></script>
     <script>
+        // Initialize with admin mode detection
+        document.addEventListener('DOMContentLoaded', function() {
+            // Check for admin mode in URL
+            if (window.location.hash === "#adminMode") {
+                const adminControls = document.getElementById('admin-controls');
+                if (adminControls) {
+                    adminControls.style.display = 'block';
+                }
+            }
+            
+            // Exit admin mode
+            const adminLogout = document.getElementById('admin-logout');
+            if (adminLogout) {
+                adminLogout.addEventListener('click', function() {
+                    window.location.hash = '';
+                    const adminControls = document.getElementById('admin-controls');
+                    if (adminControls) {
+                        adminControls.style.display = 'none';
+                    }
+                });
+            }
+        });
+        
         // Toggle reply form visibility - needed for HTML inline onclick attributes
         function toggleReplyForm(button) {
             const topic = button.closest('.topic');
@@ -252,9 +472,10 @@
                 replyForm.style.display = 'block';
             }
         }
-        
-        // Make it available globally
-        window.toggleReplyForm = toggleReplyForm;
     </script>
+    
+    <!-- Load app JavaScript -->
+    <script src="/js/app.js"></script>
 </body>
 </html>
+```
