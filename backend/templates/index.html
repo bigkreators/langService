@@ -1,5 +1,3 @@
-```html
-<!-- File: backend/templates/index.html -->
 <!DOCTYPE html>
 <html lang="en">
 <head>
@@ -11,10 +9,70 @@
         // Global configuration with data from backend
         window.appConfig = {
             apiBaseUrl: '/api',
-            initialData: {{ initial_data | safe }},
             currentLanguage: "{{ current_language }}"
         };
     </script>
+    <style>
+        .open {
+            border-right: none !important;
+        }
+        .search-container {
+            display: flex;
+            margin-bottom: 10px;
+            border: 1px solid #ccc;
+            padding: 10px;
+            background-color: #f9f9f9;
+            align-items: center;
+            border: none;
+        }
+        #searchInput {
+            flex: 1;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px 0 0 4px;
+            font-size: 14px;
+        }
+        #searchButton {
+            border: none;
+        }
+        
+        table {
+            border-collapse: collapse;
+        }
+        
+        td {
+            border: 1px solid #ccc;
+            padding: 10px;
+        }
+        
+        span {
+            display: inline-block;
+        }
+        
+        .mirrored {
+            transform: scaleX(-1);
+            display: inline-block;
+        }
+        
+        /* Loading spinner */
+        .loading-spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #3498db;
+            border-radius: 50%;
+            width: 20px;
+            height: 20px;
+            animation: spin 1s linear infinite;
+            margin: 20px auto;
+            display: flex;
+            justify-content: center;
+            padding: 16px;
+        }
+        
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
 </head>
 <body>
     <div class="container">
@@ -43,16 +101,35 @@
                     </div>
                     
                     <div class="notifications-list" id="notificationsList">
-                        <!-- Notifications will be populated here -->
-                        <div class="loading-spinner"></div>
+                        {% if notifications %}
+                            {% for notification in notifications %}
+                            <div class="notification-item {% if not notification.is_read %}unread{% endif %}" data-id="{{ notification.id }}">
+                                <div class="notification-content">
+                                    <div class="notification-title">{{ notification.title }}</div>
+                                    <div class="notification-message">{{ notification.message }}</div>
+                                    <div class="notification-time">
+                                        {% if notification.created_date %}
+                                            {{ notification.created_date.strftime('%B %d, %Y') }}
+                                        {% else %}
+                                            Unknown time
+                                        {% endif %}
+                                    </div>
+                                </div>
+                                <button class="dismiss-button" data-id="{{ notification.id }}">×</button>
+                            </div>
+                            {% endfor %}
+                        {% else %}
+                            <div class="empty-notifications">No notifications at this time.</div>
+                        {% endif %}
                     </div>
                 </div>
             </div>
         </div>
         <div class="search-container">
             <input type="text" id="searchInput" placeholder="Search symbols...">
-            <button id="searchButton">Search</button>
-            <button id="clearButton">Clear</button>
+            <button id="searchButton"><span style="position: relative; width: 100px; height: 20px; background-color: #ccc;">
+                <span style="position: absolute; top: 50%; left: 30%; transform: translateY(-50%); background-color: #777; width: 40px; height: 20px; border-radius: 10px;">Search</span>
+              </span></button>
         </div>
 
         <div class="tabs">
@@ -86,7 +163,7 @@
                 </tr>
                 {% for row in consonants %}
                 <tr>
-                    <td class="label-cell">{{ row.0.manner }}</td>
+                    <td class="label-cell">{{ row[0].manner }}</td>
                     {% for cell in row %}
                     <td>
                         {% if cell.symbol %}
@@ -98,8 +175,151 @@
                 {% endfor %}
             </table>
             
+            <!-- Static consonant symbols -->
+            <div>
+                𝼧 Dental nasal <br>
+                𝼨 Voiced Dental trill <br>
+                𝼕 voiced alveolo-palatal approximant <br>
+                Voiced labialized postpalatal approximant 𝼿 (w̶) <br>
+                Voiceless Alveolar Lateral Approximant ꝲ <br>
+                voiceless palatal implosive ƈ <br>
+                voiced alveolo-palatal lateral approximant ȴ <br>
+                ⱹ voiced dental lateral flap <br>
+                ƀ Voiced Labiodental Plosive <br>
+                ƭ voiceless alveolar implosive <br>
+                voiceless velar implosive ƙ <br>
+                voiceless retroflex implosive 𝼉 <br>
+                Alveolo-palatal Plosive ȶ ȡ
+            </div>
+            
             <h2 style="text-align: center">Other ones</h2>
             <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
+                <!-- Always include the original Other ones content -->
+                <table class="infobox" style="width: 30%; margin-bottom: 20px;">
+                    <tbody>
+                        <tr>
+                            <th class="infobox-above" colspan="2" style="background: #f2f2ce;">
+                                Voiced velar bunched approximant
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="infobox-header" colspan="2" style="background: #ffffe6;">
+                                <span style="font-size: 5em; line-height: 1.2em; vertical-align: super; font-weight: normal;" class="IPA nowrap">
+                                    ᴪ
+                                </span>
+                            </th>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table class="infobox" style="width: 30%; margin-bottom: 20px;">
+                    <tbody>
+                        <tr>
+                            <th class="infobox-above" colspan="2" style="background: #f2f2ce;">
+                                Retroflex lateral click
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="infobox-header" colspan="2" style="background: #ffffe6;">
+                                <span style="font-size: 5em; line-height: 1.2em; vertical-align: super; font-weight: normal;">
+                                    <span class="IPA nowrap">
+                                        ⦀
+                                    </span>
+                                </span>
+                            </th>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table class="infobox" style="width: 30%; margin-bottom: 20px;">
+                    <tbody>
+                        <tr>
+                            <th class="infobox-above" colspan="2" style="background: #f2f2ce;">
+                                Voiced compressed post-palatal approximant
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="infobox-header" colspan="2" style="background: #ffffe6;">
+                                <span style="font-size: 5em; line-height: 1.2em; vertical-align: super; font-weight: normal;">
+                                    <span class="IPA nowrap">
+                                        𝼾 (ɥ̵)
+                                    </span>
+                                </span>
+                            </th>
+                        </tr>
+                    </tbody>
+                </table>
+
+                <table class="infobox" style="width: 30%; margin-bottom: 20px; height: 200px; box-sizing: border-box;">
+                    <tbody>
+                        <tr>
+                            <th class="infobox-above" colspan="2" style="background: #f2f2ce;">
+                                Fricated palatal click
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="infobox-header" colspan="2" style="background: #ffffe6;">
+                                <span style="font-size: 5em; line-height: 1.2em; vertical-align: super; font-weight: normal;">
+                                    <span class="IPA nowrap">
+                                        𝼋
+                                    </span>
+                                </span>
+                            </th>
+                        </tr>
+                    </tbody>
+                </table>
+                <table class="infobox" style="width: 30%; margin-bottom: 20px;">
+                    <tbody>
+                        <tr>
+                            <th class="infobox-above" colspan="2" style="background: #f2f2ce;">
+                                Creaky-voiced glottal approximant
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="infobox-header" colspan="2" style="background: #ffffe6;">
+                                <span style="font-size: 5em; line-height: 1.2em; vertical-align: super; font-weight: normal;">
+                                    <span class="IPA nowrap">
+                                        ꜧ
+                                    </span>
+                                </span>
+                            </th>
+                        </tr>
+                        <tr>
+                            <td class="infobox-full-data center" colspan="2">
+                              <span>
+                            <audio src="audio/Creaky-voiced_glottal_approximant.wav.mp3" controls></audio>
+                             </span>
+                            </td>
+                        </tr>
+                    </tbody>
+                </table>
+                <table class="infobox" style="width: 30%; margin-bottom: 20px;">
+                    <tbody>
+                        <tr>
+                            <th class="infobox-above" colspan="2" style="background: #f2f2ce;">
+                               Voiced (post-velar,) uvular(, pharyngeal, or epiglottal) lateral approximant
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="infobox-header" colspan="2" style="background: #ffffe6;">
+                                <span style="font-size: 5em; line-height: 1.2em; vertical-align: super; font-weight: normal;">
+                                    <span class="IPA nowrap">
+                                        ꝇ
+                                    </span>
+                                </span>
+                            </th>
+                        </tr>
+                        <tr>
+                            <td class="infobox-full-data center" colspan="2">
+                              <span>
+                            <audio src="audio/Uvular_lateral_approximant.ogg.mp3" controls></audio>
+                              </span>
+                             </td>
+                         </tr>
+                     </tbody>
+                 </table>
+                
+                <!-- Include dynamic consonants from the database if available -->
                 {% for other in other_consonants %}
                 <table class="infobox" style="width: 30%; margin-bottom: 20px;">
                     <tbody>
@@ -115,11 +335,11 @@
                                 </span>
                             </th>
                         </tr>
-                        {% if other.audio_url %}
+                        {% if other.audio_file %}
                         <tr>
                             <td class="infobox-full-data center" colspan="2">
                               <span>
-                            <audio src="{{ other.audio_url }}" controls></audio>
+                            <audio src="{{ other.audio_file }}" controls></audio>
                              </span>
                             </td>
                         </tr>
@@ -145,7 +365,7 @@
                 </tr>
                 {% for row in impossible_consonants %}
                 <tr>
-                    <td class="label-cell">{{ row.0.manner }}</td>
+                    <td class="label-cell">{{ row[0].manner }}</td>
                     {% for cell in row %}
                     <td {% if cell.impossible %}style="background-color: #d1d4da;"{% endif %}>
                         {% if cell.symbol and cell.impossible %}
@@ -179,7 +399,7 @@
                 </tr>
                 {% for row in vowels %}
                 <tr>
-                    <td class="label-cell">{{ row.0.height }}</td>
+                    <td class="label-cell">{{ row[0].height }}</td>
                     {% for cell in row %}
                     <td>
                         {% if cell.symbol %}
@@ -191,8 +411,80 @@
                 {% endfor %}
             </table>
             
+            <!-- Static vowel elements -->
+            <div>
+                ᴇ mid front unrounded vowel <br>
+                ᴀ open central unrounded vowel <br>
+                (ⱻ ω) Mid Back Vowel <br>
+                Near-close Central Vowel ᵻ ᵿ
+            </div>
+            
             <h2 style="text-align: center">Other ones</h2>
             <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 20px;">
+                <!-- Always include the original Other ones vowels content -->
+                <table class="infobox" style="width: 30%; margin-bottom: 20px; height: 133px; box-sizing: border-box;">
+                    <tbody>
+                        <tr>
+                            <th class="infobox-above" colspan="2" style="background: #f2f2ce;">
+                                Close central compressed vowel
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="infobox-header" colspan="2" style="background: #ffffe6;">
+                                <span style="font-size: 5em; line-height: 1.2em; vertical-align: super; font-weight: normal;">
+                                    <span class="IPA nowrap">
+                                        ɏ
+                                    </span>
+                                </span>
+                            </th>
+                        </tr>
+                    </tbody>
+                </table>
+                <table class="infobox" style="width: 30%; margin-bottom: 20px; height: 133px; box-sizing: border-box;">
+                    <tbody>
+                        <tr>
+                            <th class="infobox-above" colspan="2" style="background: #f2f2ce;">
+                                near-close central compressed vowel
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="infobox-header" colspan="2" style="background: #ffffe6;">
+                                <span style="font-size: 5em; line-height: 1.2em; vertical-align: super; font-weight: normal;">
+                                    <span class="IPA nowrap">
+                                        <span style="font-variant: small-caps;">ɏ</span>
+                                    </span>
+                                </span>
+                            </th>
+                        </tr>
+                    </tbody>
+                </table>
+                <table class="infobox" style="width: 30%; margin-bottom: 20px; height: 200px; box-sizing: border-box;">
+                    <tbody>
+                        <tr>
+                            <th class="infobox-above" colspan="2" style="background: #f2f2ce;">
+                                Near-close near-back unrounded vowel
+                            </th>
+                        </tr>
+                        <tr>
+                            <th class="infobox-header" colspan="2" style="background: #ffffe6;">
+                                <span style="font-size: 5em; line-height: 1.2em; vertical-align: super; font-weight: normal;">
+                                    <span class="IPA nowrap">
+                                        ꟺ
+                                    </span>
+                                </span>
+                            </th>
+                        </tr>
+                       <tr>
+                           <td class="infobox-full-data center" colspan="2">
+                             <span>
+                           <audio src="audio/Near-close_near-back_unrounded_vowel.ogg.mp3" controls></audio>
+                            </span>
+                           </td>
+                       </tr>
+                    </tbody>
+                </table>
+                
+                <!-- Include dynamic vowels from the database if available -->
                 {% for other in other_vowels %}
                 <table class="infobox" style="width: 30%; margin-bottom: 20px; height: 133px; box-sizing: border-box;">
                     <tbody>
@@ -210,11 +502,11 @@
                                 </span>
                             </th>
                         </tr>
-                        {% if other.audio_url %}
+                        {% if other.audio_file %}
                         <tr>
                             <td class="infobox-full-data center" colspan="2">
                              <span>
-                           <audio src="{{ other.audio_url }}" controls></audio>
+                           <audio src="{{ other.audio_file }}" controls></audio>
                             </span>
                            </td>
                        </tr>
@@ -234,7 +526,7 @@
                     <button id="admin-logout">Exit Admin Mode</button>
                 </div>
                 <div class="admin-stats">
-                    <p>Pending proposals: <span id="pending-count">0</span></p>
+                    <p>Pending proposals: <span id="pending-count">{{ proposals|selectattr('status', 'equalto', 'pending')|list|length }}</span></p>
                 </div>
             </div>
 
@@ -295,7 +587,12 @@
                     <div class="proposal-item" data-id="{{ proposal.id }}">
                         <div class="proposal-header">
                             <div class="proposal-symbol">{{ proposal.symbol }}</div>
-                            <div class="proposal-date">{{ proposal.submitted_date }}
+                            <div class="proposal-date">
+                                {% if proposal.submitted_date %}
+                                    {{ proposal.submitted_date.strftime('%B %d, %Y') }}
+                                {% else %}
+                                    Unknown date
+                                {% endif %}
                                 {% if proposal.status == "pending" %}
                                 <span class="status-badge status-pending">Pending</span>
                                 {% elif proposal.status == "approved" %}
@@ -372,7 +669,13 @@
                     <div class="topic" data-id="{{ topic.id }}">
                         <div class="topic-header">
                             <h4 class="topic-title">{{ topic.title }}</h4>
-                            <span class="topic-meta">Posted by {{ topic.author_name or "Anonymous" }} on {{ topic.created_date }}</span>
+                            <span class="topic-meta">Posted by {{ topic.author_name or "Anonymous" }} on 
+                            {% if topic.created_date %}
+                                {{ topic.created_date.strftime('%B %d, %Y') }}
+                            {% else %}
+                                Unknown date
+                            {% endif %}
+                            </span>
                         </div>
                         <div class="topic-content">
                             <p>{{ topic.content }}</p>
@@ -380,7 +683,13 @@
                         <div class="replies">
                             {% for reply in topic.replies %}
                             <div class="reply" data-id="{{ reply.id }}">
-                                <div class="reply-meta">{{ reply.author_name or "Anonymous" }} on {{ reply.created_date }}</div>
+                                <div class="reply-meta">{{ reply.author_name or "Anonymous" }} on 
+                                {% if reply.created_date %}
+                                    {{ reply.created_date.strftime('%B %d, %Y') }}
+                                {% else %}
+                                    Unknown date
+                                {% endif %}
+                                </div>
                                 <p>{{ reply.content }}</p>
                             </div>
                             {% endfor %}
@@ -478,4 +787,3 @@
     <script src="/js/app.js"></script>
 </body>
 </html>
-```
