@@ -6,7 +6,7 @@ from bs4 import BeautifulSoup
 import sys
 
 # Path to the HTML file
-html_file_path = "my_extended_ipa_symbols/Extend the IPA!.html"
+html_file_path = "source.html"
 
 def extract_extended_phonemes():
     """Extract extended IPA symbols from the HTML file."""

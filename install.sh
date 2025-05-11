@@ -1,5 +1,5 @@
 #!/bin/bash
-# install.sh - Setup script for Extended IPA Backend
+# install.sh - Setup script for Extended IPA Backend (without data extraction)
 
 set -e  # Exit on error
 
@@ -611,275 +611,6 @@ async def root():
     return {"message": "Welcome to the Extended IPA Symbols API"}
 EOL
 
-# Create data extraction script
-echo "Creating data extraction script..."
-cat > backend/scripts/extract_extended_phonemes.py << 'EOL'
-import os
-import json
-import re
-from bs4 import BeautifulSoup
-import sys
-
-# Path to the HTML file
-html_file_path = "../my_extended_ipa_symbols/Extend the IPA!.html"
-
-def extract_extended_phonemes():
-    """Extract extended IPA symbols from the HTML file."""
-    with open(html_file_path, 'r', encoding='utf-8') as f:
-        html_content = f.read()
-    
-    soup = BeautifulSoup(html_content, 'html.parser')
-    
-    # Extract consonants
-    consonant_table = soup.select_one("#consonants table")
-    extended_consonants = []
-    
-    if consonant_table:
-        rows = consonant_table.select("tr")
-        headers = [th.text.strip() for th in rows[0].select("th")]
-        places = []
-        for i, th in enumerate(rows[0].select("th")):
-            colspan = int(th.get("colspan", 1))
-            places.extend([th.text.strip()] * colspan)
-        
-        for row_idx, row in enumerate(rows[1:]):
-            manner = row.select_one("td.label-cell").text.strip()
-            cells = row.select("td:not(.label-cell)")
-            
-            for col_idx, cell in enumerate(cells):
-                if cell.text.strip() and "background-color: #d1d4da" not in str(cell):
-                    symbol = cell.text.strip()
-                    
-                    # Check for audio
-                    audio_file = None
-                    audio_element = cell.select_one(".clickable-text")
-                    if audio_element and "data-audio-url" in audio_element.attrs:
-                        audio_file = audio_element["data-audio-url"]
-                    
-                    # Determine place from column
-                    place = places[col_idx] if col_idx < len(places) else None
-                    
-                    extended_consonants.append({
-                        "symbol": symbol,
-                        "ipa": symbol,
-                        "description": f"{manner} {place}".strip(),
-                        "example": f"{manner} {place}".strip().lower(),
-                        "audio_file": audio_file,
-                        "is_extended": True,
-                        "articulation_type": manner.lower(),
-                        "articulation_place": place.lower() if place else None,
-                        "row_position": row_idx,
-                        "column_position": col_idx
-                    })
-    
-    # Extract vowels
-    vowel_table = soup.select_one("#vowels table")
-    extended_vowels = []
-    
-    if vowel_table:
-        rows = vowel_table.select("tr")
-        heights = [th.text.strip() for th in rows[0].select("th")]
-        positions = []
-        for i, th in enumerate(rows[1].select("th")):
-            positions.append(th.text.strip())
-        
-        for row_idx, row in enumerate(rows[2:]):
-            height = row.select_one("td.label-cell").text.strip()
-            cells = row.select("td:not(.label-cell)")
-            
-            for col_idx, cell in enumerate(cells):
-                if cell.text.strip():
-                    symbol = cell.text.strip()
-                    
-                    # Check for audio
-                    audio_file = None
-                    audio_element = cell.select_one(".clickable-text")
-                    if audio_element and "data-audio-url" in audio_element.attrs:
-                        audio_file = audio_element["data-audio-url"]
-                    
-                    # Determine position
-                    position = positions[col_idx] if col_idx < len(positions) else None
-                    
-                    extended_vowels.append({
-                        "symbol": symbol,
-                        "ipa": symbol,
-                        "description": f"{height} {position} vowel".strip(),
-                        "example": f"{height} {position} vowel".strip().lower(),
-                        "audio_file": audio_file,
-                        "is_extended": True,
-                        "row_position": row_idx,
-                        "column_position": col_idx
-                    })
-    
-    # Extract impossible phonemes
-    impossible_table = soup.select("h2:-soup-contains('Impossible ones') + table")
-    impossible_phonemes = []
-    
-    if impossible_table:
-        rows = impossible_table[0].select("tr")
-        places = []
-        for i, th in enumerate(rows[0].select("th")):
-            colspan = int(th.get("colspan", 1))
-            places.extend([th.text.strip()] * colspan)
-        
-        for row_idx, row in enumerate(rows[1:]):
-            manner = row.select_one("td.label-cell").text.strip()
-            cells = row.select("td:not(.label-cell)")
-            
-            for col_idx, cell in enumerate(cells):
-                if cell.text.strip() and "background-color: #d1d4da" in str(cell):
-                    symbol = cell.text.strip()
-                    
-                    # Check for audio
-                    audio_file = None
-                    audio_element = cell.select_one(".clickable-text")
-                    if audio_element and "data-audio-url" in audio_element.attrs:
-                        audio_file = audio_element["data-audio-url"]
-                    
-                    # Determine place from column
-                    place = places[col_idx] if col_idx < len(places) else None
-                    
-                    impossible_phonemes.append({
-                        "symbol": symbol,
-                        "ipa": symbol,
-                        "description": f"{manner} {place}".strip(),
-                        "example": f"{manner} {place}".strip().lower(),
-                        "audio_file": audio_file,
-                        "is_extended": True,
-                        "articulation_type": manner.lower(),
-                        "articulation_place": place.lower() if place else None,
-                        "impossibility_reason": "Anatomically impossible due to articulatory constraints",
-                        "row_position": row_idx,
-                        "column_position": col_idx
-                    })
-    
-    # Save extracted data to JSON
-    data = {
-        "consonants": extended_consonants,
-        "vowels": extended_vowels,
-        "impossible": impossible_phonemes
-    }
-    
-    with open("extended_phonemes.json", "w", encoding="utf-8") as f:
-        json.dump(data, f, ensure_ascii=False, indent=2)
-    
-    print(f"Extracted {len(extended_consonants)} consonants, {len(extended_vowels)} vowels, and {len(impossible_phonemes)} impossible phonemes")
-    
-    return data
-
-if __name__ == "__main__":
-    extract_extended_phonemes()
-EOL
-
-# Create data import script
-echo "Creating data import script..."
-cat > backend/scripts/import_extended_ipa.py << 'EOL'
-import json
-import os
-import sys
-from sqlalchemy import create_engine
-from sqlalchemy.orm import sessionmaker
-import uuid
-
-sys.path.append("..")  # Add parent directory to Python path
-from app.database import Base
-from app.models.language import Language
-from app.models.phoneme import Phoneme, PhonemeType
-
-# Get database URL from environment or use default
-DATABASE_URL = os.getenv("DATABASE_URL", "sqlite:///./ipa_symbols.db")
-
-# Create engine and session
-engine = create_engine(
-    DATABASE_URL, 
-    connect_args={"check_same_thread": False} if DATABASE_URL.startswith("sqlite") else {}
-)
-SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
-
-def import_extended_phonemes():
-    """Import extended phonemes from JSON file into database."""
-    # Load data from JSON file
-    with open("extended_phonemes.json", "r", encoding="utf-8") as f:
-        data = json.load(f)
-    
-    db = SessionLocal()
-    
-    try:
-        # Get or create English language
-        language = db.query(Language).filter(Language.code == "english").first()
-        if not language:
-            language = Language(
-                id=uuid.uuid4(),
-                code="english", 
-                name="English"
-            )
-            db.add(language)
-            db.commit()
-            db.refresh(language)
-        
-        # Import consonants
-        for phoneme_data in data["consonants"]:
-            # Check if phoneme already exists
-            phoneme = db.query(Phoneme).filter(
-                Phoneme.language_id == language.id,
-                Phoneme.symbol == phoneme_data["symbol"]
-            ).first()
-            
-            if not phoneme:
-                phoneme = Phoneme(
-                    id=uuid.uuid4(),
-                    language_id=language.id,
-                    type=PhonemeType.consonant,
-                    **{k: v for k, v in phoneme_data.items() if k != "type"}
-                )
-                db.add(phoneme)
-        
-        # Import vowels
-        for phoneme_data in data["vowels"]:
-            # Check if phoneme already exists
-            phoneme = db.query(Phoneme).filter(
-                Phoneme.language_id == language.id,
-                Phoneme.symbol == phoneme_data["symbol"]
-            ).first()
-            
-            if not phoneme:
-                phoneme = Phoneme(
-                    id=uuid.uuid4(),
-                    language_id=language.id,
-                    type=PhonemeType.vowel,
-                    **{k: v for k, v in phoneme_data.items() if k != "type"}
-                )
-                db.add(phoneme)
-        
-        # Import impossible phonemes
-        for phoneme_data in data["impossible"]:
-            # Check if phoneme already exists
-            phoneme = db.query(Phoneme).filter(
-                Phoneme.language_id == language.id,
-                Phoneme.symbol == phoneme_data["symbol"]
-            ).first()
-            
-            if not phoneme:
-                phoneme = Phoneme(
-                    id=uuid.uuid4(),
-                    language_id=language.id,
-                    type=PhonemeType.consonant,  # Default to consonant
-                    **{k: v for k, v in phoneme_data.items() if k != "type"}
-                )
-                db.add(phoneme)
-        
-        db.commit()
-        print(f"Successfully imported extended phonemes")
-    except Exception as e:
-        db.rollback()
-        print(f"Error importing extended phonemes: {e}")
-    finally:
-        db.close()
-
-if __name__ == "__main__":
-    import_extended_phonemes()
-EOL
-
 # Create Dockerfile
 echo "Creating Dockerfile..."
 cat > backend/Dockerfile << 'EOL'
@@ -934,7 +665,7 @@ echo "Creating initialization script..."
 cat > backend/init.py << 'EOL'
 #!/usr/bin/env python
 """
-Initialize the backend by creating all tables and importing initial data.
+Initialize the backend by creating all tables.
 """
 import os
 import sys
@@ -963,30 +694,7 @@ def init_db():
 
 if __name__ == "__main__":
     init_db()
-    
-    # Check if the user wants to proceed with extracting and importing data
-    proceed = input("Do you want to extract and import extended IPA data? (y/n): ")
-    if proceed.lower() == 'y':
-        # Current working directory
-        cwd = os.getcwd()
-        
-        # Path to extract_extended_phonemes.py
-        script_path = os.path.join(cwd, "scripts", "extract_extended_phonemes.py")
-        
-        # Run extraction script
-        if os.system(f"python {script_path}") == 0:
-            print("Data extraction successful.")
-            
-            # Path to import_extended_ipa.py
-            import_script_path = os.path.join(cwd, "scripts", "import_extended_ipa.py")
-            
-            # Run import script
-            if os.system(f"python {import_script_path}") == 0:
-                print("Data import successful.")
-            else:
-                print("Data import failed.")
-        else:
-            print("Data extraction failed.")
+    print("Database initialization complete!")
 EOL
 
 # Make scripts executable
@@ -1002,4 +710,8 @@ echo "3. cd backend"
 echo "4. python init.py"
 echo "5. uvicorn app.main:app --reload"
 echo "6. Visit http://localhost:8000/docs in your browser"
+echo ""
+echo "Note: To import the extended IPA data, use the existing scripts:"
+echo "- backend/scripts/extract_extended_phonemes.py"
+echo "- backend/scripts/import_extended_ipa.py"
 echo "========================================"
