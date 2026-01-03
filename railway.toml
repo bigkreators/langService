@@ -1,7 +1,6 @@
 [build]
 builder = "dockerfile"
 dockerfilePath = "Dockerfile"
-dockerContext = "backend"
 watchPatterns = ["backend/**"]
 
 [deploy]
